@@ -25,11 +25,17 @@ def createInstDic(instV, N):  # function for subdictionary of instructions with 
     separate = instV[0].strip().split(' ')
     instS[N]['instType'] = separate[0]
     instS[N]['input1'] = separate[1]
-    instS[N]['input2'] = instV[1]
-    if len( instV) > 3: # intructions that go in the adder (add, mult, sub) and ld/sd have an input (an address and an offset) have 3 inputs
+    if len(instV[1].strip().split('(')) > 1:  # ld/sd have an input (an address and an offset) have 3 inputs
+        ldsd = instV[1].strip().split('(')
+        instS[N]['input2'] = ldsd[0]
+        instS[N]['input3'] = ldsd[1].replace(')', '')
+    else:
+            instS[N]['input2'] = instV[1]
+    if len( instV) > 3: # intructions that go in the adder (add, mult, sub)
         input2 = v[2]
         instS[N]['input3'] = v[2]
 
+instS = {}  #create dictionary for instN instructions
 for line in f:
     # splits each line in tabs to pull out values from table
     v = line.strip().split('\t')  # outputs each line in text file
@@ -79,10 +85,8 @@ for line in f:
             elif r1m2 > 2:  # INSTRUCTION SET IS HERE
                 # print(v)
                 # INTRUCTION TYPE and DESTINATION Register is in v[0], so separate
-                instS = {}  #create dictionary for instN instructions
                 if len(v) > 1:  # the instruction is not a NOP, it can be adder, sub, mult, branch or ld/sd
                     createInstDic( v, instN)
-                    print(instS)
                 else:  # The instruction is a NOP-- no inputs needed
                     instTypes[instN] = 'NOP'
                     Rds[instN] = 'NOP'
@@ -110,8 +114,8 @@ for line in f:
 # print(ROBe, CBDe)
 
 # Registers and memory addresses
-#print(regNames, regInitials)
-#print(memLocs, memInitials)
+print(regNames, regInitials)
+print(memLocs, memInitials)
 # reg = {}
 # for i, regName in enumerate(regNames):
 #      reg[regName] = regInitials[i]
@@ -120,6 +124,4 @@ for line in f:
 #     mem[memLoc] = memInitials[i]
 
 # instructions
-# print(instTypes, Rds)
-
-print(instS)
+#print(instS)
