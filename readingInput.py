@@ -1,5 +1,5 @@
 # open text_file
-readInput = open(r"C:\Users\HP\Desktop\CA\CA_project\input.txt", "r")
+readInput = open("input.txt", "r")
 f = readInput.readlines()
 
 # set counters

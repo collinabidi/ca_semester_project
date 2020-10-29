@@ -1,0 +1,61 @@
+The base driver for the model will be a script that completes a loop representing
+1 clock cycle.
+The loop looks like so:
+* processor initialize
+* Value initialize
+* while (program backlog is not empty)
+  ** Drive ISSUE stage components
+    *** Instr fetch + decode
+    *** register map
+    *** branch set up etc
+    *** reservation station load
+  ** Drive EX stage components
+    *** Calculation advancement
+    *** Branch resolution pass-back
+  ** Drive MEM stage components
+    *** Call any value from memory
+    *** CDB arbitration + data load
+  ** Drive WB stage components
+    *** drive value across data bus
+    *** res station writeback
+    *** drive value into acrh. reg
+  ** Drive commit components
+    *** commit completed instructions to reg. map
+    *** settle any unfinish logic
+  ** Print or record state of the processor
+* Print or record final output
+> prog_record = []
+> [comp_params, data_params] = intake_params(input_file)
+> processor = init_components(comp_params)
+> init_data(processor, data_params)
+> while len(processor.prog_backlog) > 0:
+>   processor.issue_comp1.tick()
+    ...
+>   processor.ex_comp1.tick()
+    ...
+>   processor.mem_comp1.tick()
+    ...
+>   processor.wb_comp1.tick()
+    ...
+>   processor.commit()
+>   prog_record.append(processor.record())
+> save(prog_record)
+Comm. / Control Rules
+* void [FUNC_UNIT].tick(void) - functional units time of control
+   * Each functional unit (alu, RS, Branch Predict, CDB, etc) has 1 chance per
+      cycle to  take Control
+   - can initiate or continue logic
+   - can ping other function units for available values
+   - can load values into it's outward facing "registers" for other to see
+* Functional units can also have asynchronous functions
+  * These functions must be invoked by a caller component
+  * Enables two components to handshake and/or transfer values
+  * Ex:
+    ** RS finds all operands during .tick() and readies them as the output
+    ** ALU calls .deliver() [async] to retrieve readied data
+    ** .deliver() clears the RS busy status and hands over the value
+* The architecture we define will be translated into the order of the .tick() calls
+   and expose which async functions will need defined for each FU.
+* On init, each functional unit is given references to each other unit it is
+   dependent on.
+* No unit can force a value into another unit, just make it available for a call
