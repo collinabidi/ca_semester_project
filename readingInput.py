@@ -1,5 +1,6 @@
-# open text_file
-readInput = open("input.txt", "r")
+# open text_file-- feel dree to adjust file path to fit your computer
+# readInput = open("input.txt", "r")  # this is what it was before
+readInput = open(r"C:\Users\HP\github\ca_semester_project\input.txt", "r")
 f = readInput.readlines()
 
 # set counters
