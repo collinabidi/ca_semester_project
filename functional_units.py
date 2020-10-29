@@ -1,12 +1,13 @@
 import os
 import sys
+from collections.abc import Sequence
 
 # . If the instruction is
 # type r (Read) it will have parameters op, rs, rt, rd, shamt, funct.
 # If instruction is type i (Immediate) then it will have parameters 
 # op, rs, rt, address/immediate. If the instruction is type j (Jump)
 # then it will have parameters op, target_address
-class Instruction:
+class Instruction():
     """ Basic class for the Instruction objects
     Attributes:
         type (string): r, i, j, or no-op depending on instruction type
@@ -22,7 +23,7 @@ class Instruction:
         addr_imm (int): immediate address value (needs to potentially fetched from RAT/CDB?)
         target_address (int): target address value (needs to potentially be fetched from RAT/CDB?)
     """
-    def __init__(self, args):
+    def __init__(self, *args):
 
         """ Initialization function for the Instruction object.
 
@@ -41,6 +42,9 @@ class Instruction:
             self.rd = args[3]
             self.shamt = args[4]
             self.funct = args[5]
+            self.string = ""
+            for arg in args:
+                self.string += arg
 
         # I-type instruction
         # args should be formatted as: 
@@ -51,6 +55,9 @@ class Instruction:
             self.rs = args[1]
             self.rt = args[2]
             self.addr_imm = args[3]
+            self.string = ""
+            for arg in args:
+                self.string += arg
         
         # J-type instruction
         # args should be formatted as: 
@@ -59,47 +66,58 @@ class Instruction:
             self.type = "j"
             self.op = args[0]
             self.target_address = args[1]
+            self.string = ""
+            for arg in args:
+                self.string += arg
         
         else: 
             self.type = "NOOP"
+            self.string = ""
+            for arg in args:
+                self.string += arg
 
+    def __str__(self):
+        return self.string
 
-# make_instruction takes an input line split by spaces and returns an Instruction
-# object with the appropriate parameters as defined by Instruction class
-def make_instruction(input_list):
-    return Instruction(input_list)
+class InstructionBuffer: 
+    """ The InstructionBuffer class is an iterable list of the instructions of a program.
 
-# Example of how to use make_instruction() function
+    Attributes:
+        instruction_list ([] Instruction): a list of Instructions        
+    """
+    def __init__(self, filename):
+        # open text_file
+        readInput = open(filename, "r")
+        f = readInput.readlines()
+        # Assume instructions always begin after line 
+        unparsed_instructions = f[10:]
+        self.instruction_list = [0]*len(unparsed_instructions)
+        for i, inst in enumerate(unparsed_instructions):
+            self.instruction_list[i] = Instruction(inst.strip("\n"))
+        self.index = 0
 
-# Let's make a pretend instruction in a list. We actually don't really care about shamt or funct
-# in our implementation because we don't have any instructions that use either parameter.
-# I just included them for the sake of completeness
-instruction_example = ["Add.d", "R1", "R2", "R3", "x", "x"]
-print("instruction_example is just a list: {}".format(instruction_example))
+    def __str__(self):
+        output_string = "================================\n"
+        output_string += "Index\t|\tInstruction\t\n"
+        for i, instruction in enumerate(self.instruction_list):
+            output_string += str(str(i) + "\t|\t" + str(self.instruction_list[i]) + "\n")
+        output_string += "================================\n"
+        return output_string
 
-# We can call the make_instruction function to create an Instruction object
-# that uses the information from the instruction_example variable
-my_instruction_object = make_instruction(instruction_example)
+    def __next__(self):
+        """ Returns next value from InstructionBuffer object's lists
+        """
+        if self.index < len(self.instruction_list):
+            result = self.instruction_list[index]
+            self.index += 1
+            return result
+        raise StopIteration
 
-# We can now access the public variables of the instruction object by calling it with a "." operator
-print("**************************")
-print("instruction OP value: {}".format(my_instruction_object.op))
-print("instruction RS value: {}".format(my_instruction_object.rs))
-print("instruction RT value: {}".format(my_instruction_object.rt))
-print("instruction RD value: {}".format(my_instruction_object.rd))
-print("**************************")
-
-# If we have an instruction queue, then we can now append to it
-instruction_queue = []
-instruction_queue.append(my_instruction_object)
-print("Instruction Queue with ONE Instruction object: {}".format(instruction_queue))
-print("**************************")
-
-# Let's make another instruction and append it to queue
-another_instruction_object = make_instruction(["Sub", "R1", "R3", "R4", "zssfsdfddoens'treallymatter", "mehhhhhhhh"])
-instruction_queue.append(another_instruction_object)
-print("Instruction Queue with TWO Instruction objects: {}".format(instruction_queue))
-print("**************************")
+    def __getitem__(self,i):
+        return self.instruction_list[i]
+    
+    def __len__(self):
+        return len(self.instruction_list)
 
 
 class IntegerAdder:
@@ -155,7 +173,7 @@ class IntegerAdder:
         Args: 
             None
         """
-        do_stuff
+        #do_stuff
 
     def deliver(self):
         """ Deliver instruction value
@@ -185,6 +203,65 @@ class IntegerAdder:
         # Check that flags are properly reset
         
 
-                
-                
+# This only runs if we call `python3 functional_units.py` from the command line       
+if __name__ == "__main__":
+    print("Testing operation of all classes defined in functional_units.py")
+    
+    # Initialize the processor and all functional units
+    instruction_buffer = InstructionBuffer("input.txt")
+    """ TODO
+    reorder_buffer = ROB()
+    
+    integer_adders = [0]*len(num_integer_adders)
+    for i, adder in enumerate(integer_adders):
+        integer_adders[i] = IntegerAdder(args)
 
+    fp_adders = [0]*len(num_fp_adders)
+    for i, adder in enumerate(fp_adders):
+        fp_adders[i] = FPAdder(args)
+
+    fp_mults = [0]*len(num_fp_mults)
+    for i, fp_mult in enumerate(fp_mults):
+        fp_mults[i] = FPMultiplier(args)
+
+    cdb
+    """
+    # Two ways to print out instructions: iterate through the buffer...
+    for i, instruction in enumerate(instruction_buffer):
+        print("Instruction {}: {}".format(i, instruction))
+
+    # ...or you can just print as a string!
+    print(instruction_buffer)
+
+    # Program counter starts at 0
+    program_counter = 0
+
+    # Table to keep track of cycle timing
+    timing_table = {}
+    for inst in instruction_buffer:
+        timing_table[str(inst)] = {"ISSUE":" ","EX":" ","MEM":" ","WB":" ","COMMIT":" "}
+
+    # Begin iterating
+    cycle = 0
+    while program_counter <= len(instruction_buffer):
+        print("\n\nCYCLE: {}".format(cycle))
+        print("PC = {}".format(program_counter))
+
+        # ISSUE stage
+        print("\tISSUE STAGE")
+        
+        # EX stage
+        print("\tEX STAGE")
+
+        # MEM stage
+        print("\tMEM STAGE")
+
+        # WB stage
+        print("\tWB STAGE")
+
+        # COMMIT stage
+        print("\tCOMMIT STAGE")
+
+        # Increment cycle counter and program counter
+        cycle += 1
+        program_counter += 1
