@@ -31,7 +31,7 @@ class CommonDataBus:
         first_come = 0
         longest_time = 0
 
-        for i in range(1, len(self.sources)):
+        for i in range(0, len(self.sources)):
             wait_time = self.source[i].arbitrate()
             if wait_time > longest_time:
                 first_come = i
@@ -53,7 +53,6 @@ class CommonDataBus:
     def reset(self, src_kill=False):
         if src_kill:
             self.sources = []
-        self.src_ptr = 0
         self.bus_data = None
 
 
