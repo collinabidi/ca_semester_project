@@ -106,16 +106,136 @@ class InstructionBuffer:
     def __len__(self):
         return len(self.instruction_list)
 
+class FPMultiplier:
+    """ The FPMultiplier class encapsulates all functionality of the parameterizable hardware Floating Point Multipler.
+
+    Attributes:
+        reservation_stations ({}): dict of stations that can be filled with instructions, cleared, marked busy, etc.
+        cycles_in_ex (int): number of cycles that it takes to execute an instruction (one at a time)
+        countdown (int): current cycle number that the FPMultiplier is on while executing an instruction
+        busy (boolean): denotes the status of the FPMultiplier
+        num_filled_stations (int): number of instructions currently occupying the reservation stations
+        complete (boolean): flag to indicate that the FPMultiplier is done
+        result (int): value that comes out of the operation
+    """
+
+    def __init__(self, num_reservations_stations, cycles_in_ex, fu_number):
+        """ Initialization function for the FPMultiplier to specify parameters.
+
+        Args:
+            num_reservation_stations (int): count of how many reservations stations there will be
+            cycles_in_ex (int): count of how many cycles it takes for the FPAdder to execute an instruction
+            fu_number (int): index of this functional unit
+        """
+        self.reservation_stations = {}
+        self.fu_number = fu_number
+        self.cycles_in_ex = cycles_in_ex
+        self.output_waiting = False
+        self.num_filled_stations = 0
+        for i in range(num_reservations_stations):
+            tag = "FPMULT_{}_{}".format(str(fu_number), str(i))
+            self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex}
+
+        # This buffer keeps a history of results and their associated tags to send to CDB
+        self.result_buffer = []
+        
+    def issue(self, instruction):
+        """ Function to insert an instruction into the reservation station
+
+        Args:
+            instruction (dict): the instruction to be inserted into an available reservation station ["op", ]
+        """
+        # Add instruction if there's enough room in the reservation stations
+        if self.num_filled_stations < len(self.reservation_stations):
+            # Generate tag and fill station
+            free_stations = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False]
+            if free_stations == []:
+                print("No free reservation stations!")
+            tag = free_stations[0]
+            self.reservation_stations[tag] = {"busy":True, "op":instruction["op"], \
+                "vj":instruction["vj"], "vk":instruction["vk"], "qj":instruction["qj"], \
+                "qk":instruction["qk"], "answer":None, "countdown":self.cycles_in_ex}  # TODO Need to set values from the incoming instruction. Pulls values from ARF/RAT/ROB?
+            self.num_filled_stations += 1
+        else:
+            return Warning("Warning! Reservation stations full! Did not insert instruction")
+
+    def tick(self):
+        """ Go forward once cycle. If results are buffered on output, raise waiting flag
+
+        Args: 
+            None
+        """
+        # Let ready instructions operate
+        for tag, instruction in self.reservation_stations.items():
+            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] != 0:
+                instruction["countdown"] -= 1
+                # Only start executing one new ready instruction
+                if instruction["countdown"] == 4:
+                    return
+            elif instruction["countdown"] == 0:
+                print("{} finished!".format(tag))
+                # Calculate answer
+                if instruction["op"] == "MULT":
+                    answer = float(self.reservation_stations[tag]["vj"]) * float(self.reservation_stations[tag]["vk"])
+                else:
+                    answer = float(self.reservation_stations[tag]["vj"]) / float(self.reservation_stations[tag]["vk"])
+
+                self.reservation_stations[tag]["answer"] = answer
+                # Put answer on result_buffer
+                self.result_buffer.append({tag:answer})
+                # Free reservation station and reset tags/flags
+                self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex}
+                self.num_filled_stations -= 1
+                self.output_waiting = True
+            elif instruction["qj"] != None or instruction["qk"] != None:
+                print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
+        
+        if len(self.result_buffer) != 0:
+            self.output_waiting = True
+        else:
+            self.output_waiting = False
+
+        return self.output_waiting
+
+    def reset(self, program_counter):
+        """ Go back and restore the past state. Called when branch prediction is incorrect.
+
+        Args:
+            None
+        """
+        # Rewind the reservation stations to the last checkpoint
+        
+        # Mark the FPMultiplier not busy
+
+        # Fill reservation stations with correct values
+
+        # Properly reset flags
+
+        raise NotImplementedError("REEEEEE")
+
+    def __str__(self):
+        output_string = "===================================================FP Multiply Unit=================================================================================\n"
+        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk       Countdown\n"
+        output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
+        for tag, value in self.reservation_stations.items():
+            output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
+                "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
+                "\t|\t" + str(value["qk"]) + "         " + str(value["countdown"]) + "\n")
+        output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
+        output_string += "Result Buffer: {}".format(self.result_buffer)
+        output_string += "\n=================================================================================================================================================\n"
+        return output_string 
+
 class FPAdder:
     """ The FPAdder class encapsulates all functionality of the parameterizable hardware Floating Point Adder.
 
     Attributes:
         reservation_stations ({}): dict of stations that can be filled with instructions, cleared, marked busy, etc.
         cycles_in_ex (int): number of cycles that it takes to execute an instruction (one at a time)
-        countdown (int): current cycle number that the IntegerAdder is on while executing an instruction
-        busy (boolean): denotes the status of the IntegerAdder
+        countdown (int): current cycle number that the FPAdder is on while executing an instruction
+        busy (boolean): denotes the status of the FPAdder
         num_filled_stations (int): number of instructions currently occupying the reservation stations
-        complete (boolean): flag to indicate that the IntegerAdder is done
+        complete (boolean): flag to indicate that the FPAdder is done
         result (int): value that comes out of the operation
     """
 
@@ -169,16 +289,21 @@ class FPAdder:
         for tag, instruction in self.reservation_stations.items():
             if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] != 0:
                 instruction["countdown"] -= 1
-                # Only start executing one ready instruction
+                # Only start executing one new ready instruction
                 if instruction["countdown"] == 4:
                     return
             elif instruction["countdown"] == 0:
                 print("{} finished!".format(tag))
-                answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
+                # Calculate answer
+                if instruction["op"] == "ADD":
+                    answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
+                else:
+                    answer = float(self.reservation_stations[tag]["vj"]) - float(self.reservation_stations[tag]["vk"])
+
                 self.reservation_stations[tag]["answer"] = answer
-                # put answer on result_buffer
+                # Put answer on result_buffer
                 self.result_buffer.append({tag:answer})
-                # free reservation station and reset tags/flags
+                # Free reservation station and reset tags/flags
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex}
                 self.num_filled_stations -= 1
                 self.output_waiting = True
@@ -200,7 +325,7 @@ class FPAdder:
         """
         # Rewind the reservation stations to the last checkpoint
         
-        # Mark the IntegerAdder not busy
+        # Mark the FPAdder not busy
 
         # Fill reservation stations with correct values
 
@@ -294,12 +419,16 @@ class IntegerAdder:
         if self.countdown != 0 and self.executing == True:
             self.countdown -= 1
         elif self.countdown == 0 and self.executing == True:
-            # calculate answer
-            answer = int(self.reservation_stations[self.current_tag]["vj"]) + int(self.reservation_stations[self.current_tag]["vk"])
+            # Calculate answer
+            if instruction["op"] == "ADD":
+                answer = int(self.reservation_stations[self.current_tag]["vj"]) + int(self.reservation_stations[self.current_tag]["vk"])
+            else:
+                answer = int(self.reservation_stations[self.current_tag]["vj"]) - int(self.reservation_stations[self.current_tag]["vk"])
+
             self.reservation_stations[self.current_tag]["answer"] = answer
-            # put answer on result_buffer
+            # Put answer on result_buffer
             self.result_buffer.append({self.current_tag:answer})
-            # free reservation station and reset tags/flags
+            # Free reservation station and reset tags/flags
             self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None}
             self.ready_queue.remove(self.current_tag)
             self.current_tag = None
@@ -340,9 +469,9 @@ class IntegerAdder:
 
     def __str__(self):
         if self.executing:
-            output_string = "===================================================Reservation Station: Executing=================================================\n"
+            output_string = "===================================================Integer Adder: Executing=================================================\n"
         else:
-            output_string = "===================================================Reservation Station: Idle======================================================\n"
+            output_string = "===================================================Integer Adder: Idle======================================================\n"
 
         output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk\t|\tAnswer\n"
         output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
@@ -354,27 +483,6 @@ class IntegerAdder:
         output_string += "Result Buffer: {}\nReady Instruction Queue: {}".format(self.result_buffer, self.ready_queue)
         output_string += "\n==================================================================================================================================\n"
         return output_string
-        
-
-def get_size(obj, seen=None):
-    """Recursively finds size of objects"""
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-    if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
-    elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
-    return size
 
 # This only runs if we call `python3 functional_units.py` from the command line       
 if __name__ == "__main__":
@@ -384,6 +492,7 @@ if __name__ == "__main__":
     instruction_buffer = InstructionBuffer("input.txt")
     integer_adder = IntegerAdder(3, 5, 1)
     fp_adder = FPAdder(3, 5, 1)
+    fp_multiplier = FPMultiplier(3, 5, 1)
     """ TODO
     reorder_buffer = ROB()
     
@@ -459,4 +568,27 @@ if __name__ == "__main__":
     fp_adder.tick()
     print(fp_adder)
 
-    print("{} bytes".format(get_size(fp_adder)))
+    # Issue instruction to fp_multiplier functional unit
+    print(fp_multiplier)
+    fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None})
+    print(fp_multiplier)
+    fp_multiplier.issue({"op":"DIV","vj":3, "vk":6, "qj":None, "qk":None})
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
+    fp_multiplier.tick()
+    print(fp_multiplier)
