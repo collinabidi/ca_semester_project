@@ -37,9 +37,9 @@ class Instruction():
             print("R TYPE INSTRUCTION")
             self.type = "r"
             self.op = args[0]
-            self.rs = args[2]
-            self.rt = args[3]
-            self.rd = args[1]
+            self.rs = args[2].strip(",")
+            self.rt = args[3].strip(",")
+            self.rd = args[1].strip(",")
             self.string = ""
             for arg in args:
                 self.string += arg + " "
@@ -504,8 +504,8 @@ if __name__ == "__main__":
     print("Testing operation of all classes defined in functional_units.py")
 
     # Initialize the processor and all functional units
-    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
-    #instruction_buffer = InstructionBuffer("input.txt")
+    #instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
+    instruction_buffer = InstructionBuffer("input.txt")
 
     """
     input_params = input_parser("input.txt")
@@ -533,6 +533,7 @@ if __name__ == "__main__":
     for i, instruction in enumerate(instruction_buffer):
         print("i = {}: value = {}".format(i, instruction))
         print(instruction.__dict__)
+        print("Instruction rs: {}".format(instruction.rs))
 
 
 
