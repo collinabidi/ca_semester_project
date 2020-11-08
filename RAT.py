@@ -45,15 +45,22 @@ print(result["answer"])
 
 
 # create free pool
-# make 101 trasnsition registers (will probably not need more)
+# make 32 trasnsition registers (will probably not need more)
 # transition registers from freepool are differentiated by 'X'
-freePool = []
-register_placeholder = []
-for i in range(0,32):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
+freePool = []  #  provides extra registers for renaming, called X
+
+# makes both floating point RAT and integer RAT
+# organizes registers with initialized values and replaces with new free pool registers
+intRAT = []
+floRAT = []  
+
+for i in range(0,31):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
     freePool.append("X" + str(i))
-    register_placeholder.append("R" + str(i))
+    intRAT.append("R" + str(i))
+    floRAT.append("F" + str(i))
 
 #register
 
 print(freePool)
-print(register_placeholder)
+print(intRAT)
+print(floRAT)
