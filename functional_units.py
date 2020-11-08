@@ -504,8 +504,8 @@ if __name__ == "__main__":
     print("Testing operation of all classes defined in functional_units.py")
 
     # Initialize the processor and all functional units
-    #instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
-    instruction_buffer = InstructionBuffer("input.txt")
+    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
+    #instruction_buffer = InstructionBuffer("input.txt")
 
     """
     input_params = input_parser("input.txt")
@@ -534,7 +534,13 @@ if __name__ == "__main__":
         print(instruction.__dict__)
         print("Instruction rs: {}".format(instruction.rs))
 
+<<<<<<< HEAD
     """
+=======
+
+
+
+>>>>>>> 8b24a333f35b880e9813791bab09e128b40d6803
     # Program counter starts at 0
     program_counter = 0
 
@@ -565,8 +571,14 @@ if __name__ == "__main__":
     # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
+<<<<<<< HEAD
 
     """
+=======
+    print(result["dest"])
+    print(result["answer"])
+"""
+>>>>>>> 8b24a333f35b880e9813791bab09e128b40d6803
     # Issue instruction to fp_multiplier functional unit
     print(fp_multiplier)
     fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB3"})
@@ -592,4 +604,6 @@ if __name__ == "__main__":
     fp_multiplier.tick()
     print(fp_multiplier)
     """
-    print(instruction.__dict__)
+
+        #if intA, FAdder, MultAdder
+            #get destination registers
