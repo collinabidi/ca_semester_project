@@ -559,7 +559,7 @@ if __name__ == "__main__":
             int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
         int_adder.tick()
         print(int_adder)
-    
+
     for i in range(0, 10):
         int_adder.tick()
         print(int_adder)
@@ -568,32 +568,3 @@ if __name__ == "__main__":
     # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
-
-    # Issue instruction to fp_multiplier functional unit
-    print(fp_multiplier)
-    fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB3"})
-    print(fp_multiplier)
-    fp_multiplier.issue({"op":"DIV","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    fp_multiplier.tick()
-    print(fp_multiplier)
-    """
-
-        #if intA, FAdder, MultAdder
-            #get destination registers
