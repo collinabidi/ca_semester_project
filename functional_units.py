@@ -446,7 +446,7 @@ class IntegerAdder:
             self.countdown -= 1
         elif self.countdown == 0 and self.executing == True:
             # Calculate answer
-            if instruction["op"] == "Add":
+            if self.reservation_stations[self.current_tag]["op"] == "Add":
                 answer = int(self.reservation_stations[self.current_tag]["vj"]) + int(self.reservation_stations[self.current_tag]["vk"])
             else:
                 answer = int(self.reservation_stations[self.current_tag]["vj"]) - int(self.reservation_stations[self.current_tag]["vk"])
@@ -529,13 +529,10 @@ if __name__ == "__main__":
     #     print("i = {}: value = {}".format(i, value))
     #     i = i + 1
 
-
     for i, instruction in enumerate(instruction_buffer):
         print("i = {}: value = {}".format(i, instruction))
         print(instruction.__dict__)
         print("Instruction rs: {}".format(instruction.rs))
-
-
 
     """
     # Program counter starts at 0
@@ -548,37 +545,28 @@ if __name__ == "__main__":
 
     # Begin iterating
     cycle = 0
+    """
 
     int_adder = IntegerAdder(3, 2, 1)
 
     # Issue instruction to fp_adder functional unit
-    print(int_adder)
-    int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB1"})
-    print(int_adder)
-    int_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
-    int_adder.tick()
-    print(int_adder)
+    for instruction in instruction_buffer:
+        # If there's room in the IntAdder and instruction is Add or Sub, issue it!
+        if instruction.op == "Sub" or instruction.op == "Add" and int_adder.num_filled_stations < len(int_adder.reservation_stations):
+            int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
+        int_adder.tick()
+        print(int_adder)
+    
+    for i in range(0, 10):
+        int_adder.tick()
+        print(int_adder)
 
     # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
     # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
 
+    """
     # Issue instruction to fp_multiplier functional unit
     print(fp_multiplier)
     fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB3"})
