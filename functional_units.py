@@ -5,7 +5,7 @@ from collections.abc import Sequence
 
 # . If the instruction is
 # type r (Read) it will have parameters op, rs, rt, rd, shamt, funct.
-# If instruction is type i (Immediate) then it will have parameters 
+# If instruction is type i (Immediate) then it will have parameters
 # op, rs, rt, address/immediate. If the instruction is type j (Jump)
 # then it will have parameters op, target_address
 class Instruction():
@@ -27,9 +27,9 @@ class Instruction():
         Args:
             Depends upon whether R-type, I-type, J-type, or no-op
         """
-        
+
         # R-type instruction
-        # args should be formatted as: 
+        # args should be formatted as:
         #   [string op, string rs, string rt,, string rd, string shamt, string funct]
         print("ARG0: {}".format(args[0]))
         args = args[0]
@@ -45,7 +45,7 @@ class Instruction():
                 self.string += arg
 
         # I-type instruction
-        # args should be formatted as: 
+        # args should be formatted as:
         #   [string op, string rs, string rt, string address_immediate]
         elif args[0] in ["Beq", "Bne", "Addi", "Ld", "Sd"]:
             print("I TYPE INSTRUCTION")
@@ -61,9 +61,9 @@ class Instruction():
             self.string = ""
             for arg in args:
                 self.string += arg + " "
-        
+
         # J-type instruction
-        # args should be formatted as: 
+        # args should be formatted as:
         #   [string op, string immediate]
         elif args[0] in ["Jump"]:
             self.type = "j"
@@ -72,8 +72,8 @@ class Instruction():
             self.string = ""
             for arg in args:
                 self.string += arg
-        
-        else: 
+
+        else:
             self.type = "NOOP"
             self.string = ""
             for arg in args:
@@ -82,11 +82,11 @@ class Instruction():
     def __str__(self):
         return self.string
 
-class InstructionBuffer: 
+class InstructionBuffer:
     """ The InstructionBuffer class is a list of the instructions of a program.
 
     Attributes:
-        instruction_list ([] Instruction): a list of Instructions        
+        instruction_list ([] Instruction): a list of Instructions
     """
     def __init__(self, filename):
         # open text_file
@@ -109,7 +109,7 @@ class InstructionBuffer:
 
     def __getitem__(self,i):
         return self.instruction_list[i]
-    
+
     def __len__(self):
         return len(self.instruction_list)
 
@@ -148,7 +148,7 @@ class FPMultiplier:
 
         # This reserves a copy of our reservation station in case we need to backtrack
         self.history = []
-        
+
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
 
@@ -176,7 +176,7 @@ class FPMultiplier:
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
 
-        Args: 
+        Args:
             None
         """
         # Let ready instructions operate
@@ -203,7 +203,7 @@ class FPMultiplier:
                 self.output_waiting = True
             elif instruction["qj"] != None or instruction["qk"] != None:
                 print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
-        
+
         if len(self.result_buffer) != 0:
             self.output_waiting = True
         else:
@@ -233,7 +233,7 @@ class FPMultiplier:
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
         output_string += "\n=================================================================================================================================================\n"
-        return output_string 
+        return output_string
 
 class FPAdder:
     """ The FPAdder class encapsulates all functionality of the parameterizable hardware Floating Point Adder.
@@ -270,7 +270,7 @@ class FPAdder:
 
         # This reserves a copy of our reservation station in case we need to backtrack
         self.history = []
-        
+
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
 
@@ -298,7 +298,7 @@ class FPAdder:
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
 
-        Args: 
+        Args:
             None
         """
         # Let ready instructions operate
@@ -325,7 +325,7 @@ class FPAdder:
                 self.output_waiting = True
             elif instruction["qj"] != None or instruction["qk"] != None:
                 print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
-        
+
         if len(self.result_buffer) != 0:
             self.output_waiting = True
         else:
@@ -355,7 +355,7 @@ class FPAdder:
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
         output_string += "\n=================================================================================================================================================\n"
-        return output_string   
+        return output_string
 
 class IntegerAdder:
     """ The IntegerAdder class encapsulates all functionality of the parameterizable hardware Integer Adder.
@@ -400,7 +400,7 @@ class IntegerAdder:
 
         # This reserves a copy of our reservation station in case we need to backtrack
         self.history = []
-        
+
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
 
@@ -430,11 +430,11 @@ class IntegerAdder:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
-        
+
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
 
-        Args: 
+        Args:
             None
         """
         # Check for ready instructions and add to queue
@@ -462,14 +462,14 @@ class IntegerAdder:
             self.executing = False
             self.output_waiting = True
             self.countdown = self.cycles_in_ex
-        
+
         # Begin executing next instruction if idle
         if self.executing == False and len(self.ready_queue) != 0:
             self.current_tag = self.ready_queue[0]
             self.executing = True
             self.countdown = self.cycles_in_ex
             #self.ready_queue.remove(self.current_tag)
-        
+
         if len(self.result_buffer) != 0:
             self.output_waiting = True
         else:
@@ -499,12 +499,14 @@ class IntegerAdder:
         output_string += "\n==================================================================================================================================\n"
         return output_string
 
-# This only runs if we call `python3 functional_units.py` from the command line       
+# This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":
     print("Testing operation of all classes defined in functional_units.py")
-    
+
     # Initialize the processor and all functional units
-    instruction_buffer = InstructionBuffer("input.txt")
+    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
+    #instruction_buffer = InstructionBuffer("input.txt")
+
     """
     input_params = input_parser("input.txt")
     integer_adders = []
@@ -521,19 +523,19 @@ if __name__ == "__main__":
     # What's in the instruction buffer?
     print(instruction_buffer)
 
-    """ This prints out the instruction buffer objects one by one
-    i = 0
-    for value in instruction_buffer:
-        print("i = {}: value = {}".format(i, value))
-        i = i + 1
+    # This prints out the instruction buffer objects one by one
+    # i = 0
+    # for value in instruction_buffer:
+    #     print("i = {}: value = {}".format(i, value))
+    #     i = i + 1
 
 
     for i, instruction in enumerate(instruction_buffer):
         print("i = {}: value = {}".format(i, instruction))
         print(instruction.__dict__)
-    """
 
-    
+
+
     """
     # Program counter starts at 0
     program_counter = 0
@@ -601,3 +603,4 @@ if __name__ == "__main__":
     fp_multiplier.tick()
     print(fp_multiplier)
     """
+    print(instruction.__dict__)
