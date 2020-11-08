@@ -15,7 +15,7 @@ int_adder = IntegerAdder(3, 2, 1)
 
 # Issue instruction to fp_adder functional unit
 
-int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB1"})
+int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"F1"})
 
 int_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
 
