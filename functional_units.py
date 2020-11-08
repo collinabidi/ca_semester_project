@@ -31,14 +31,15 @@ class Instruction():
         # R-type instruction
         # args should be formatted as: 
         #   [string op, string rs, string rt,, string rd, string shamt, string funct]
+        print("ARG0: {}".format(args[0]))
+        args = args[0]
         if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
+            print("R TYPE INSTRUCTION")
             self.type = "r"
             self.op = args[0]
-            self.rs = args[1]
-            self.rt = args[2]
-            self.rd = args[3]
-            self.shamt = args[4]
-            self.funct = args[5]
+            self.rs = args[2]
+            self.rt = args[3]
+            self.rd = args[1]
             self.string = ""
             for arg in args:
                 self.string += arg
@@ -47,14 +48,19 @@ class Instruction():
         # args should be formatted as: 
         #   [string op, string rs, string rt, string address_immediate]
         elif args[0] in ["Beq", "Bne", "Addi", "Ld", "Sd"]:
+            print("I TYPE INSTRUCTION")
             self.type = "i"
-            self.op = args.op
+            self.op = args[0]
             self.rs = args[1]
-            self.rt = args[2]
-            self.addr_imm = args[3]
+            if args[0] in ["Bne", "Bne", "Addi"]:
+                self.rt = args[2].strip(",")
+                self.addr_imm = args[3].strip(",")
+            elif args[0] in ["Ld","Sd"]:
+                self.rd = args[2].split("(")[1].strip(")")
+                self.addr_imm = float(args[2].split("(")[0])
             self.string = ""
             for arg in args:
-                self.string += arg
+                self.string += arg + " "
         
         # J-type instruction
         # args should be formatted as: 
@@ -87,10 +93,10 @@ class InstructionBuffer:
         readInput = open(filename, "r")
         f = readInput.readlines()
         # Assume instructions always begin after line 10
-        unparsed_instructions = f[10:]
+        unparsed_instructions = f[11:]
         self.instruction_list = [0]*len(unparsed_instructions)
         for i, inst in enumerate(unparsed_instructions):
-            self.instruction_list[i] = Instruction(inst.strip("\n"))
+            self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
 
     def __str__(self):
@@ -515,6 +521,20 @@ if __name__ == "__main__":
     # What's in the instruction buffer?
     print(instruction_buffer)
 
+    """ This prints out the instruction buffer objects one by one
+    i = 0
+    for value in instruction_buffer:
+        print("i = {}: value = {}".format(i, value))
+        i = i + 1
+
+
+    for i, instruction in enumerate(instruction_buffer):
+        print("i = {}: value = {}".format(i, instruction))
+        print(instruction.__dict__)
+    """
+
+    
+    """
     # Program counter starts at 0
     program_counter = 0
 
@@ -551,9 +571,10 @@ if __name__ == "__main__":
     int_adder.tick()
     print(int_adder)
 
+    # This will give you a dictionary: for example, {"ROB1":10.3} would be the output for an operation with
+    # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
-    """
 
     # Issue instruction to fp_multiplier functional unit
     print(fp_multiplier)

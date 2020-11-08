@@ -133,7 +133,7 @@ class input_parser():
                 regval = float(val.split("=")[1])
             self.registers[regname] = regval
 
-    
+"""
 # # Adders are dictionaries
 inputparsed = input_parser("input.txt")
 
@@ -148,3 +148,9 @@ print("Memory initialized as a 256-long list: {}".format(inputparsed.memory))
 # instructions
 #print(instS)
 
+RAT = {"R1":"ARF1", "R2":"ARF2"}
+RAT["R1"] = "ROB1"
+
+INT_ARF = {"R1":1, "R2":3}
+FP_ARF = {"F1":1.8, "F2":3.1}
+"""
