@@ -106,23 +106,23 @@ for line in f:
                 entry += 1  # counter must stay with this indentation to match if else statement entry
 
 # # Adders are dictionaries
-# print(intA)
+# print(intA['nrg'])
 # print(FPA)
 # print(FPM)
 # print(LSU)
 #
 # # Entries are just numbers/varibles
-# print(ROBe, CBDe)
+#print(ROBe, CBDe)
 
 # Registers and memory addresses
 print(regNames, regInitials)
 print(memLocs, memInitials)
-# reg = {}
-# for i, regName in enumerate(regNames):
-#      reg[regName] = regInitials[i]
+# reg = {} #not sure if needed
+# for regName in enumerate(regNames):
+#      reg[regName] = regInitials[regName]
 # mem = {}
-# for i, memLoc in enumerate(memLocs):
-#     mem[memLoc] = memInitials[i]
+# for memLoc in enumerate(memLocs):
+#     mem[memLoc] = memInitials[memLoc]
 
 # instructions
-#print(instS)
+print(instS)
