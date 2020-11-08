@@ -2,43 +2,88 @@
 # Common Data Bus class: picks an available result and passes it to subscribers
 
 CDB Interface:
-|Sources| <--poll req--  |Data Bus| ---data---> |Subscribers|
-|       |  ----data----> |        |             |           |
-Sources must implement .arbitrate() so bus can ask how many cycles data has waited
+|Sources| <--poll test--  |Data Bus| ---data---> |Subscribers|
+|       |  ----data---->  |        |             |           |
 Sources must implement .deliver() so bus can pull in data to dist.
 Subscribers must call cdb.poll() to get available data on the cycle it's pulled
 
 
 Bus arbitration
-- Bus polls each source for how long it's been ready (.arbitrate())
-  -- return 0 indicates nothing is Ready
-  -- return 1+ indicates num cycles waiting (so increment each cycle)
+- Bus polls each source each cycle to detect an idle->ready tx.
+- If the tx is detected, the source is queued for delivery
+- Ties are arbitrated by order of access
 
-- Once polled, bus claims highest weight available data (.deliver())
-  -- return None is called at wrong time
-  -- return data for bus as tuple (or other agreed on obj)
-  -- calling this func should zero out .arbitrate() counter for the source
+Delivery to bus
+ - Bus calls source.deliver() to get the data out of the source results_buffer
+ - .deliver() should also clear that entry from the output queue.
+
+Pick up from bus
+ - The bus hosts  a list of subscribers. Once a value hits the bus, the bus
+  will call subscriber.read_cdb(dataType bus_data)
+ - Whatever data tuple was read from the bus, cdb will post to the sub
+ - Subs can also use cdb.poll() to get the current bus data values
+    -- data lives on the line for 1 cycle
 """
 
+# arbitrates the collection actions of the bus.
+class Arbiter:
+    def __init__(self, cdb_ref):
+        self.output_q = []
+        self.source_states = None
+        self.cdb = cdb_ref
+
+        if cdb_ref is None:
+            raise TypeError("Arbiter was not given a reference to parent CBD")
+
+        self.source_states = [0] * len(self.cdb.sources) # init ready state arr
+
+
+    def reset(self):
+        self.source_states = [0] * len(self.cdb.sources)
+
+
+    def source_poll(self):
+        # determines state change of source result buffer
+        for i in range(len(self.source_states)):
+            ready_out = self.cdb.sources[i].results_buffer[0]
+
+            if ready_out is not None and self.source_states[i] == 0:
+                self.source_states[i] = 1
+                self.output_q.append(i)
+
+
+    def arbitrate(self):
+        # returns the next in line for CDB service or None if no data should tx
+        next_up = self.output_q[0]
+
+        if next_up is not None:
+            self.source_states[next_up] = 0
+
+        self.output_q = self.output_q[1:]
+        return next_up
+
+
+
+# Common Data Bus for transfering results to registers
 class CommonDataBus:
-    def __init__(self, sources):
+    def __init__(self, sources, subscribers):
         self.sources = sources # list of all FUs which feed the bus
+        self.subscribers = subscribers # list of units reading the bus.
         self.bus_data = None   # Available data for bus subscribers
+        self.arbiter = Arbiter(self)
 
 
     # standard heartbeat function
     def tick(self):
-        first_come = 0
-        longest_time = 0
+        self.arbiter.source_poll()
+        target_fu = self.arbiter.arbitrate()
 
-        for i in range(0, len(self.sources)):
-            wait_time = self.source[i].arbitrate()
-            if wait_time > longest_time:
-                first_come = i
-                longest_time = wait_time
+        if target_fu is not None:
+            self.bus_data = self.sources[target_fu].deliver()
 
-        if longest_time != 0:
-            self.bus_data = self.sources[first_come].deliver()
+            for sub in self.subscribers:
+                sub.read_cdb(bus_data)
+
         else:
             self.bus_data = None
 
@@ -54,6 +99,7 @@ class CommonDataBus:
         if src_kill:
             self.sources = []
         self.bus_data = None
+        self.arbiter.reset()
 
 
     # defined as a standard command, but bus does not hold state data
