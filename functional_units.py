@@ -185,7 +185,7 @@ class FPMultiplier:
                 # Put answer on result_buffer
                 self.result_buffer.append({tag:answer})
                 # Free reservation station and reset tags/flags
-                self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex,, "dest":None}
+                self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
                 self.output_waiting = True
             elif instruction["qj"] != None or instruction["qk"] != None:
@@ -523,9 +523,9 @@ if __name__ == "__main__":
     
     # Issue instruction to fp_adder functional unit
     print(fp_adder)
-    fp_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None})
+    fp_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB1"})
     print(fp_adder)
-    fp_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None})
+    fp_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
     print(fp_adder)
     fp_adder.tick()
     print(fp_adder)
@@ -548,9 +548,9 @@ if __name__ == "__main__":
 
     # Issue instruction to fp_multiplier functional unit
     print(fp_multiplier)
-    fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None})
+    fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB3"})
     print(fp_multiplier)
-    fp_multiplier.issue({"op":"DIV","vj":3, "vk":6, "qj":None, "qk":None})
+    fp_multiplier.issue({"op":"DIV","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
     print(fp_multiplier)
     fp_multiplier.tick()
     print(fp_multiplier)
