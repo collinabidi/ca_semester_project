@@ -196,7 +196,7 @@ class FPMultiplier:
 
                 self.reservation_stations[tag]["answer"] = answer
                 # Put answer on result_buffer
-                self.result_buffer.append({self.reservation_stations[tag]["dest"]:answer})
+                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"answer":answer})
                 # Free reservation station and reset tags/flags
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
@@ -318,7 +318,7 @@ class FPAdder:
 
                 self.reservation_stations[tag]["answer"] = answer
                 # Put answer on result_buffer
-                self.result_buffer.append({self.reservation_stations[tag]["dest"]:answer})
+                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"answer":answer})
                 # Free reservation station and reset tags/flags
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
@@ -453,7 +453,7 @@ class IntegerAdder:
 
             self.reservation_stations[self.current_tag]["answer"] = answer
             # Put answer on result_buffer
-            self.result_buffer.append({self.reservation_stations[self.current_tag]["dest"]:answer})
+            self.result_buffer.append({"dest":self.reservation_stations[self.current_tag]["dest"],"answer":answer})
             # Free reservation station and reset tags/flags
             self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "dest":None}
             self.ready_queue.remove(self.current_tag)
@@ -574,7 +574,7 @@ if __name__ == "__main__":
     int_adder.tick()
     print(int_adder)
 
-    # This will give you a dictionary: for example, {"ROB1":10.3} would be the output for an operation with
+    # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
     # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
