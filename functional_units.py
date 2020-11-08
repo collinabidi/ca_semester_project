@@ -42,7 +42,7 @@ class Instruction():
             self.rd = args[1]
             self.string = ""
             for arg in args:
-                self.string += arg
+                self.string += arg + " "
 
         # I-type instruction
         # args should be formatted as:
@@ -71,7 +71,7 @@ class Instruction():
             self.target_address = args[1]
             self.string = ""
             for arg in args:
-                self.string += arg
+                self.string += arg + " "
 
         else:
             self.type = "NOOP"
