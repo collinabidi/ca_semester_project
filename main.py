@@ -13,13 +13,13 @@ def make_instruction(input_list):
 # This only runs if we call `python3 main.py` from the command line
 if __name__ == "__main__":
     print("Testing operation of all classes defined in functional_units.py")
-    
+
     # Initialize the processor and all functional units
-    instruction_buffer = InstructionBuffer("input.txt")
+    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt", "r") # changed: input.txt
     integer_adder = IntegerAdder(3, 5, 1)
     """ TODO
     reorder_buffer = ROB()
-    
+
     integer_adders = [0]*len(num_integer_adders)
     for i, adder in enumerate(integer_adders):
         integer_adders[i] = IntegerAdder(args)
@@ -51,10 +51,10 @@ if __name__ == "__main__":
         print("\n\nCYCLE: {}".format(cycle))
         print("PC = {}".format(program_counter))
 
-        
+
         # ISSUE stage
         print("\tISSUE STAGE")
-        
+
         # EX stage
         print("\tEX STAGE")
 
