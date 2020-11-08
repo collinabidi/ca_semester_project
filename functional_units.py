@@ -139,6 +139,9 @@ class FPMultiplier:
 
         # This buffer keeps a history of results and their associated tags to send to CDB
         self.result_buffer = []
+
+        # This reserves a copy of our reservation station in case we need to backtrack
+        self.history = []
         
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
@@ -159,6 +162,10 @@ class FPMultiplier:
             self.num_filled_stations += 1
         else:
             return Warning("Warning! Reservation stations full! Did not insert instruction")
+
+    def deliver(self):
+        print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
+        return self.result_buffer.pop(0)
 
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
@@ -183,7 +190,7 @@ class FPMultiplier:
 
                 self.reservation_stations[tag]["answer"] = answer
                 # Put answer on result_buffer
-                self.result_buffer.append({tag:answer})
+                self.result_buffer.append({self.reservation_stations[tag]["dest"]:answer})
                 # Free reservation station and reset tags/flags
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
@@ -198,30 +205,25 @@ class FPMultiplier:
 
         return self.output_waiting
 
-    def reset(self, program_counter):
-        """ Go back and restore the past state. Called when branch prediction is incorrect.
+    def save_history(self):
+        print("Saved a copy of the reservation station!")
+        self.history = self.reservation_stations.copy()
 
-        Args:
-            None
-        """
-        # Rewind the reservation stations to the last checkpoint
-        
-        # Mark the FPMultiplier not busy
-
-        # Fill reservation stations with correct values
-
-        # Properly reset flags
-
-        raise NotImplementedError("REEEEEE")
+    def reset(self):
+        print("Resetting the reservation stations")
+        self.reservation_stations = self.history.copy()
+        self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
+        self.executing = False
+        self.current_tag = None
 
     def __str__(self):
         output_string = "===================================================FP Multiply Unit=================================================================================\n"
-        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk       Countdown\n"
+        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk       Countdown     Dest\n"
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
-                "\t|\t" + str(value["qk"]) + "         " + str(value["countdown"]) + "\n")
+                "\t|\t" + str(value["qk"]) + "         " + str(value["countdown"]) + "      " + str(value["dest"]) + "\n")
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
         output_string += "\n=================================================================================================================================================\n"
@@ -259,6 +261,9 @@ class FPAdder:
 
         # This buffer keeps a history of results and their associated tags to send to CDB
         self.result_buffer = []
+
+        # This reserves a copy of our reservation station in case we need to backtrack
+        self.history = []
         
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
@@ -279,6 +284,10 @@ class FPAdder:
             self.num_filled_stations += 1
         else:
             return Warning("Warning! Reservation stations full! Did not insert instruction")
+
+    def deliver(self):
+        print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
+        return self.result_buffer.pop(0)
 
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
@@ -303,7 +312,7 @@ class FPAdder:
 
                 self.reservation_stations[tag]["answer"] = answer
                 # Put answer on result_buffer
-                self.result_buffer.append({tag:answer})
+                self.result_buffer.append({self.reservation_stations[tag]["dest"]:answer})
                 # Free reservation station and reset tags/flags
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
@@ -318,21 +327,16 @@ class FPAdder:
 
         return self.output_waiting
 
-    def reset(self, program_counter):
-        """ Go back and restore the past state. Called when branch prediction is incorrect.
+    def save_history(self):
+        print("Saved a copy of the reservation station!")
+        self.history = self.reservation_stations.copy()
 
-        Args:
-            None
-        """
-        # Rewind the reservation stations to the last checkpoint
-        
-        # Mark the FPAdder not busy
-
-        # Fill reservation stations with correct values
-
-        # Properly reset flags
-
-        raise NotImplementedError("REEEEEE")
+    def reset(self):
+        print("Resetting the reservation stations")
+        self.reservation_stations = self.history.copy()
+        self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
+        self.executing = False
+        self.current_tag = None
 
     def __str__(self):
         output_string = "===================================================FP Adder Unit=================================================================================\n"
@@ -412,11 +416,11 @@ class IntegerAdder:
 
     def save_history(self):
         print("Saved a copy of the reservation station!")
-        self.history = self.reservation_stations.copy
+        self.history = self.reservation_stations.copy()
 
     def reset(self):
         print("Resetting the reservation stations")
-        #self.reservation_stations = self.history.copy
+        self.reservation_stations = self.history.copy()
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
@@ -427,7 +431,6 @@ class IntegerAdder:
         Args: 
             None
         """
-        self.save_history()
         # Check for ready instructions and add to queue
         for tag, instruction in self.reservation_stations.items():
             if instruction["vj"] != None and instruction["vk"] != None and tag not in self.ready_queue:
@@ -444,7 +447,7 @@ class IntegerAdder:
 
             self.reservation_stations[self.current_tag]["answer"] = answer
             # Put answer on result_buffer
-            self.result_buffer.append({self.current_tag:answer})
+            self.result_buffer.append({self.reservation_stations[self.current_tag]["dest"]:answer})
             # Free reservation station and reset tags/flags
             self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "answer":None, "dest":None}
             self.ready_queue.remove(self.current_tag)
@@ -467,6 +470,11 @@ class IntegerAdder:
             self.output_waiting = False
 
         return self.output_waiting
+
+    def deliver(self):
+        print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
+        return self.result_buffer.pop(0)
+
 
     def __str__(self):
         if self.executing:
@@ -518,32 +526,33 @@ if __name__ == "__main__":
     # Begin iterating
     cycle = 0
 
-    fp_adder = FPAdder(3, 2, 1)
+    int_adder = IntegerAdder(3, 2, 1)
 
-    
     # Issue instruction to fp_adder functional unit
-    print(fp_adder)
-    fp_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB1"})
-    print(fp_adder)
-    fp_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
-    fp_adder.tick()
-    print(fp_adder)
+    print(int_adder)
+    int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB1"})
+    print(int_adder)
+    int_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
+    int_adder.tick()
+    print(int_adder)
 
+    result = int_adder.deliver()
+    print("First result: {}".format(result))
     """
 
     # Issue instruction to fp_multiplier functional unit

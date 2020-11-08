@@ -1,3 +1,5 @@
+import re
+
 class input_parser():
     def __init__(self, filename):
         # open text_file-- feel dree to adjust file path to fit your computer
@@ -13,14 +15,14 @@ class input_parser():
         memN = 0  # index counter for number of adresses to create memNames and memInitials
         instN = 0  # index counter for number of instructions
         # set expected entries
-        ROBe = 0
-        CBDe = 0
+        self.ROBe = 0
+        self.CBDe = 0
         # Seeds for register, memory adresses and instruction lists
-        limit = 4
-        regNames = [[]]*limit  # str
-        regInitials = [[]]*limit  # integers and floats
-        memLocs = [[]]*limit  # whole numbers
-        memInitials = [[]]*limit  # integers and floats
+        limit = 100
+        self.regNames = [0]*limit  # str
+        self.regInitials = [0]*limit  # integers and floats
+        self.memLocs = [0]*limit  # whole numbers
+        self.memInitials = [0]*limit  # integers and floats
 
         def createInstDic(instV, N):  # function for subdictionary of instructions with type, destination register, input1 and 2
             instS[instN] = {}  # create new sub dictionary each time new instruction is in the text file
@@ -76,14 +78,14 @@ class input_parser():
                     if r1m2 == 1:  # REGISTER VALUES corresponding to their names
                         for register in v:  # go through each index in list v
                             regV = register.strip().split('=')  # new register value
-                            regNames[regN] = regV[0]
-                            regInitials[regN] = regV[1]
+                            self.regNames[regN] = regV[0]
+                            self.regInitials[regN] = regV[1]
                             regN += 1  # counts the number of given registers
                     elif r1m2 == 2:  # MEMORY VALUES corresponding to their names
                         for memory in v:  # go through each index in list v
                             memV = memory.strip().split('=')  # new memory value
-                            memLocs[memN] = int(memV[0][4])
-                            memInitials[memN] = memV[1]
+                            self.memLocs[memN] = int(memV[0][4])
+                            self.memInitials[memN] = memV[1]
                             memN += 1  # counts the number of given addresses
                     elif r1m2 > 2:  # INSTRUCTION SET IS HERE
                         # print(v)
@@ -102,30 +104,46 @@ class input_parser():
                     v = line.strip().split('=')
                     if len(v) > 1:
                         if entry == 1:
-                            ROBe = v[1]
+                            self.ROBe = v[1]
                         else:
-                            CBDe = v[1]
+                            self.CBDe = v[1]
                         entry += 1  # counter must stay with this indentation to match if else statement entry
+
+        # Assume reg is always on line 9
+        # Assume memory is always on line 10
+        memory_line = f[9]
+        register_line = f[8]
+        memory_string = memory_line.strip("\n").split(",")
+        register_string = register_line.strip("\n").split(",")
+        self.memory = [0] * 256
+        self.registers = {}
+        for val in memory_string:
+            temp = re.findall(r'\d+', val.split("=")[0]) 
+            memloc = int(temp[0])
+            if "." in val.split("=")[1]:
+                memval = float(val.split("=")[1])
+            else:
+                memval = int(val.split("=")[1])
+            self.memory[memloc] = memval
+        for val in register_string:
+            regname = val.split("=")[0]
+            if "R" in regname:
+                regval = int(val.split("=")[1])
+            else:
+                regval = float(val.split("=")[1])
+            self.registers[regname] = regval
+
     
 # # Adders are dictionaries
-parsed_instruction_object = input_parser("input.txt")
-print(parsed_instruction_object.intA)
-print(parsed_instruction_object.FPA)
-print(parsed_instruction_object.FPM)
-print(parsed_instruction_object.LSU)
-#
-# # Entries are just numbers/varibles
-# print(ROBe, CBDe)
+inputparsed = input_parser("input.txt")
 
-# Registers and memory addresses
-# print(regNames, regInitials)
-# print(memLocs, memInitials)
-# reg = {}
-# for i, regName in enumerate(regNames):
-#      reg[regName] = regInitials[i]
-# mem = {}
-# for i, memLoc in enumerate(memLocs):
-#     mem[memLoc] = memInitials[i]
+print(inputparsed.intA)
+print(inputparsed.FPA)
+print(inputparsed.FPM)
+print(inputparsed.LSU)
+
+print("Registers: {}".format(inputparsed.registers))
+print("Memory initialized as a 256-long list: {}".format(inputparsed.memory))
 
 # instructions
 #print(instS)
