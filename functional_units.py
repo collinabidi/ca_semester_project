@@ -534,13 +534,10 @@ if __name__ == "__main__":
         print(instruction.__dict__)
         print("Instruction rs: {}".format(instruction.rs))
 
-<<<<<<< HEAD
     """
-=======
 
 
 
->>>>>>> 8b24a333f35b880e9813791bab09e128b40d6803
     # Program counter starts at 0
     program_counter = 0
 
@@ -571,14 +568,7 @@ if __name__ == "__main__":
     # destination ROB1 and value 10.3
     result = int_adder.deliver()
     print("First result: {}".format(result))
-<<<<<<< HEAD
 
-    """
-=======
-    print(result["dest"])
-    print(result["answer"])
-"""
->>>>>>> 8b24a333f35b880e9813791bab09e128b40d6803
     # Issue instruction to fp_multiplier functional unit
     print(fp_multiplier)
     fp_multiplier.issue({"op":"MULT","vj":10, "vk":5, "qj":None, "qk":None, "dest":"ROB3"})
