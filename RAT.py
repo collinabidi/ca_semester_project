@@ -105,11 +105,11 @@ for register in intRAT:
             intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
             intRATrenamed[RATindexI] = freePool.pop()
     RATindexI += 1
-
+""" good for checking
 print(intRATvals)
 print(intRATrenamed)
 print(intRAT) ## checked to make sure matched with input.txt
-
+"""
 # #initialize floRAT
 RATindexF = 0
 for register in floRAT:
@@ -120,11 +120,11 @@ for register in floRAT:
             floRATvals[RATindexF] = inputs.ARFF[register] #set register value to RAT value storage
             floRATrenamed[RATindexF] = freePool.pop()
     RATindexF += 1
-
+"""good for checking
 print(floRATvals)
 print(floRATrenamed)
 print(floRAT) ## checked to make sure matched with input.txt
-
+"""
 
 ##################### Register Renamimg Once Ticking starts ####################
 # Rename register everytime
@@ -133,29 +133,77 @@ print(floRAT) ## checked to make sure matched with input.txt
 # get updated adder results from floating_units.py
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
 # destination ROB1 and value 10.3
-# int_adder.tick()
-# int_adder.tick()
+
+#do not delete
+#it is initializer to grab results from functional units
+result = int_adder.deliver()
+##### check if not removing twice; instruction unit and RAT removal??? think we are good though
+"""
+print("First result: {}".format(result))
+print(result["dest"])
+print(result["answer"])
+int_adder.tick()
+int_adder.tick()
+int_adder.tick()
+int_adder.tick()
 result = int_adder.deliver() ##### check if not removing twice!!! instruction unit and RAT removal???
 print("First result: {}".format(result))
 print(result["dest"])
 print(result["answer"])
-
+######bug???
+#### Collin, how does it know the value of R3 if it was never defined and the result turnout 30?
+"""
 # Replace rename registers is similar to initializer, but doesnt access ARF from readingIput.py
 # Accesses functional_units.py
 
-# RATindexI = 0
-# for register in intRAT:
-#     # checks if initial registerName corresponds with register in
-#     for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
-#         if register == initialR :
-#             print(RATindexI)
-#             intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
-#             intRATrenamed[RATindexI] = freePool.pop()
-#     RATindexI += 1
-#
-# print(intRATvals)
-# print(intRATrenamed)
-# print(intRAT) ## checked to make sure matched with input.txt
+#CHECK IF result["answer is int or float"] ? and make if stament in instruction queue loop
+
+#INT
+RATindexI = 0
+renameName= result["dest"]  # string numeric value of register to be renamed
+for register in intRAT:
+    # checks if initial registerName corresponds with register in
+
+    #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
+    ####for initialR in result["dest"]: # all initialized values are in architechture register!!!!!
+    if register == renameName:
+        intRATvals[RATindexI] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
+        print(renameName[1])
+        intRATrenamed[int(renameName[1])] = freePool.pop()
+    RATindexI += 1
+
+print(intRATvals)
+print(intRATrenamed)
+print(intRAT) ## checked to make sure matched with input.txt
+
+int_adder.tick()
+int_adder.tick()
+int_adder.tick()
+int_adder.tick()
+
+
+# Connect RAT to instruction queue to rename the register with X value
+
+
+
+# Replace X value with register result after adder calculated
+#FLOAT
+RATindexF = 0
+renameName= result["dest"]  # string numeric value of register to be renamed
+for register in floRAT:
+    # checks if initial registerName corresponds with register in
+
+    #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
+    ####for initialR in result["dest"]: # all initialized values are in architechture register!!!!!
+    if register == renameName:
+        floRATvals[RATindexF] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
+        print(renameName[1])
+        floRATrenamed[int(renameName[1])] = freePool.pop()
+    RATindexF += 1
+
+print(floRATvals)
+print(floRATrenamed)
+print(floRAT) ## checked to make sure matched with input.txt
 
 
 # Tick
