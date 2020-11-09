@@ -145,8 +145,18 @@ class input_parser():
 
         #make ARF int and floating point regNames and regInitials
         #print(self.regInitials)
-        print (self.regNames[0][0] == 'R')
-        #self.ARFNamesI =
+        self.ARFI = {}
+        self. ARFF = {}
+        for initial in range(0, len(self.regNames)): #index value is offset by 1 from length of reg
+            if self.regNames[initial][0] == 'R': # integer ARF
+                ### create dictionary
+                self.ARFI[self.regNames[initial]] = int(self.regInitials[initial])
+            elif self.regNames[initial][0]: # floating point ARF ######### watch for bugs, what if input is not R or F?
+                ### create dictionary
+                self.ARFF[self.regNames[initial]] = float(self.regInitials[initial])
+
+        # print(self.ARFI)
+        # print(self.ARFF)
 
 
 """

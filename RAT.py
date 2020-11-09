@@ -5,6 +5,9 @@ from readingInput import input_parser
 instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
 #instruction_buffer = InstructionBuffer("input.txt")
 
+# create object called inputs to access regNames and regInitials
+inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+
 
 ### useful for debugging
 ### printer to know what is in the instruction buffer
@@ -13,8 +16,7 @@ instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\
 #     print(instruction.__dict__)
 #     print("Instruction rs: {}".format(instruction.rs))
 
-# create object called inputs to access regNames and regInitials
-inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+
 #inputparsed = input_parser("input.txt")
 int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
 #double check intention with Collin: arent these random values that can be replaced with input.txt?
@@ -25,7 +27,7 @@ for instruction in instruction_buffer:
         int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
     int_adder.tick()
 
-for i in range(0, 10):
+for i in range(0, 10): ### what are these random ticks for?????/
     int_adder.tick()
 
 # Issue instruction to fp_adder functional unit
@@ -73,9 +75,8 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 # print(intRAT)
 # print(floRAT)
 
-
 # Get initialized values from readingInput
-
+# print(inputs.ARFF)
 
 # Separate floating from interger VALUES
 
@@ -90,9 +91,9 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 # get updated adder results from floating_units.py
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
 # destination ROB1 and value 10.3
-result = int_adder.deliver()
-print("First result: {}".format(result))
-print(result["dest"])
-print(result["answer"])
+# result = int_adder.deliver()
+# print("First result: {}".format(result))
+# print(result["dest"])
+# print(result["answer"])
 
 #if there is a result intadder
