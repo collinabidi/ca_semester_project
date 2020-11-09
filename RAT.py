@@ -81,22 +81,31 @@ floRATvals = [[]]*regLim
 # print(floRAT)
 
 # Get initialized values from readingInput
-# print(inputs.ARFF)
-#initialize intRAT
-
 # print(inputs.ARFI)
+# print(inputs.ARFF)
 
+#initialize intRAT
+RATindexI = 0
 for register in intRAT:
     # checks if initial registerName corresponds with register in
     for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
         if register == initialR :
-            print(inputs.ARFI[register])
-            intRATvals[inputs.ARFI[register]] = inputs.ARFI[register] #set register value to RAT value storage
+            print(RATindexI)
+            intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
+    RATindexI += 1
 
 print(intRATvals)
+print(intRAT)
 
-#initialize floRAT
-
+# #initialize floRAT
+# for register in floRAT:
+#     # checks if initial registerName corresponds with register in
+#     for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
+#         if register == initialR :
+#             print(inputs.ARFI[register])
+#             intRATvals[inputs.ARFI[register]] = inputs.ARFI[register] #set register value to RAT value storage
+#
+# print(intRATvals)
 
 # get updated adder results from floating_units.py
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
