@@ -34,7 +34,7 @@ class Instruction():
 
         ### uncomment for debugging each argument in buffer
         #print("ARG0: {}".format(args[0]))
-        args = args[0] ### Collin, this is the instruction queue, right?
+        args = args[0] #  the instruction queue
         print("*********************************")
         print(args)
         print("*********************************")
@@ -536,10 +536,11 @@ if __name__ == "__main__":
     #     print("i = {}: value = {}".format(i, value))
     #     i = i + 1
 
+    print("INSTRUCTION QUEUE")
     for i, instruction in enumerate(instruction_buffer):
         print("i = {}: value = {}".format(i, instruction))
         print(instruction.__dict__)
-        print("Instruction rs: {}".format(instruction.rs))
+        print("Instruction rd: {}".format(instruction.rd))
 
     """
     # Program counter starts at 0

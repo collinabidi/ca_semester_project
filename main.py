@@ -59,6 +59,8 @@ if __name__ == "__main__":
 
         # ISSUE stage
         print("\tISSUE STAGE")
+        #intruction queue issues
+        print(inputs.args) #comes from funtional unit
 
 
         # EX stage

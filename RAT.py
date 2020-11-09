@@ -8,7 +8,6 @@ instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\
 # create object called inputs to access regNames and regInitials
 inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
 
-
 ### useful for debugging
 ### printer to know what is in the instruction buffer
 # for i, instruction in enumerate(instruction_buffer):
@@ -21,17 +20,14 @@ inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
 int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
 #double check intention with Collin: arent these random values that can be replaced with input.txt?
 
-for instruction in instruction_buffer:
-    # If there's room in the IntAdder and instruction is Add or Sub, issue it!
-    if instruction.op == "Sub" or instruction.op == "Add" and int_adder.num_filled_stations < len(int_adder.reservation_stations):
-        int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
-    int_adder.tick()
+
+
 
 for i in range(0, 10): ### what are these random ticks for?????/
     int_adder.tick()
 
 # Issue instruction to fp_adder functional unit
-"""
+""" #can be used for testing
 # fake values into integer adder for debugging and testing
 int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"F1"})
 
@@ -41,17 +37,6 @@ int_adder.tick()
 #
 # int_adder.tick()
 #
-# int_adder.tick()
-#
-# int_adder.tick()
-#
-# int_adder.tick()
-#
-# int_adder.tick()
-#
-# int_adder.tick()
-#
-# int_adder.tick()
 """ # cleaning up RAT
 
 ######################### RAT ops really start #################################
@@ -134,81 +119,81 @@ print(floRAT) ## checked to make sure matched with input.txt
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
 # destination ROB1 and value 10.3
 
-#do not delete
 #it is initializer to grab results from functional units
-result = int_adder.deliver()
+#result = int_adder.deliver() #could delete
+
+for instruction in instruction_buffer:
+    # If there's room in the IntAdder and instruction is Add or Sub, issue it!
+    if instruction.op == "Sub" or instruction.op == "Add" and int_adder.num_filled_stations < len(int_adder.reservation_stations):
+        int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
+    destName = instruction.rd
+    Name = destName[0]
+    # Replace rename registers is similar to initializer, but doesnt access ARF from readingIput.py
+    # Accesses functional_units.py
+
+    #CHECK IF result["answer is int or float"] ? and make if stament in instruction queue loop
+    if Name == "R":  # check if register is int or float by
+        #INT
+        RATindexI = 0
+        renameName= destName  # string numeric value of register to be renamed
+        for register in intRAT:
+            # checks if initial registerName corresponds with register in
+
+            #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
+            ####for initialR in destName: # all initialized values are in architechture register!!!!!
+            if register == renameName:
+                intRATvals[RATindexI] = instruction.rd #set register value to RAT value storage with rename value called result["answer"]
+                print(renameName[1])
+                intRATrenamed[int(renameName[1])] = freePool.pop()
+            RATindexI += 1
+
+        print(intRATvals)
+        print(intRATrenamed)
+        print(intRAT) ## checked to make sure matched with input.txt
+    elif Name == "F":
+        # Connect RAT to instruction queue to rename the register with X value
+
+        # issueQ = Instruction() #from functional unit
+        # print(issueQ.args[1])
+
+        # Replace X value with register result after adder calculated
+        #FLOAT
+        RATindexF = 0
+        renameName= destName  # string numeric value of register to be renamed
+        for register in floRAT:
+            # checks if initial registerName corresponds with register in
+
+            #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
+            ####for initialR in destName: # all initialized values are in architechture register!!!!!
+            if register == renameName:
+                floRATvals[RATindexF] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
+                print(renameName[1])
+                floRATrenamed[int(renameName[1])] = freePool.pop()
+            RATindexF += 1
+
+        print(floRATvals)
+        print(floRATrenamed)
+        print(floRAT) ## checked to make sure matched with input.txt
+    else:
+        print("Warning: this instruction is not an add or subtract")
+
+
+    # Tick to next instruction
+    int_adder.tick()
+
+
+
+
 ##### check if not removing twice; instruction unit and RAT removal??? think we are good though
 """
 print("First result: {}".format(result))
-print(result["dest"])
+print(destName)
 print(result["answer"])
-int_adder.tick()
-int_adder.tick()
-int_adder.tick()
-int_adder.tick()
+
 result = int_adder.deliver() ##### check if not removing twice!!! instruction unit and RAT removal???
 print("First result: {}".format(result))
-print(result["dest"])
+print(destName)
 print(result["answer"])
 ######bug???
 #### Collin, how does it know the value of R3 if it was never defined and the result turnout 30?
 """
-# Replace rename registers is similar to initializer, but doesnt access ARF from readingIput.py
-# Accesses functional_units.py
-
-#CHECK IF result["answer is int or float"] ? and make if stament in instruction queue loop
-
-#INT
-RATindexI = 0
-renameName= result["dest"]  # string numeric value of register to be renamed
-for register in intRAT:
-    # checks if initial registerName corresponds with register in
-
-    #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
-    ####for initialR in result["dest"]: # all initialized values are in architechture register!!!!!
-    if register == renameName:
-        intRATvals[RATindexI] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
-        print(renameName[1])
-        intRATrenamed[int(renameName[1])] = freePool.pop()
-    RATindexI += 1
-
-print(intRATvals)
-print(intRATrenamed)
-print(intRAT) ## checked to make sure matched with input.txt
-
-int_adder.tick()
-int_adder.tick()
-int_adder.tick()
-int_adder.tick()
-
-
-# Connect RAT to instruction queue to rename the register with X value
-
-
-
-# Replace X value with register result after adder calculated
-#FLOAT
-RATindexF = 0
-renameName= result["dest"]  # string numeric value of register to be renamed
-for register in floRAT:
-    # checks if initial registerName corresponds with register in
-
-    #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
-    ####for initialR in result["dest"]: # all initialized values are in architechture register!!!!!
-    if register == renameName:
-        floRATvals[RATindexF] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
-        print(renameName[1])
-        floRATrenamed[int(renameName[1])] = freePool.pop()
-    RATindexF += 1
-
-print(floRATvals)
-print(floRATrenamed)
-print(floRAT) ## checked to make sure matched with input.txt
-
-
-# Tick
-
-
-
-
-#if there is a result intadder
