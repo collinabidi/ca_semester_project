@@ -31,10 +31,13 @@ class Instruction():
         # R-type instruction
         # args should be formatted as:
         #   [string op, string rs, string rt,, string rd, string shamt, string funct]
-        print("ARG0: {}".format(args[0]))
+
+        ### uncomment for debugging each argument in buffer
+        #print("ARG0: {}".format(args[0]))
         args = args[0]
         if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
-            print("R TYPE INSTRUCTION")
+            ### uncomment when debugging
+            # print("R TYPE INSTRUCTION")
             self.type = "r"
             self.op = args[0]
             self.rs = args[2].strip(",")
@@ -48,7 +51,8 @@ class Instruction():
         # args should be formatted as:
         #   [string op, string rs, string rt, string address_immediate]
         elif args[0] in ["Beq", "Bne", "Addi", "Ld", "Sd"]:
-            print("I TYPE INSTRUCTION")
+            ### uncomment when debugging
+            # print("I TYPE INSTRUCTION")
             self.type = "i"
             self.op = args[0]
             self.rs = args[1]
