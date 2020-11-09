@@ -12,5 +12,3 @@ Mem[4]=1, Mem[8]=2, Mem[12]=3.4
 Add R1, R2, R3
 Sub R4, R5, R6
 Add R3, R7, R8
-Ld F4, 8(R1)
-Bne R2, R3, -3

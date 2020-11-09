@@ -481,7 +481,6 @@ class IntegerAdder:
         print("hello")
         print(self.result_buffer)
         print("hello")
-
         print("Delivering {} and removing from result buffer".format(self.result_buffer[0])) #changed 0 to 1 because instruction queue starts with 1?
         return self.result_buffer.pop(0)
 
@@ -539,9 +538,6 @@ if __name__ == "__main__":
         print("Instruction rs: {}".format(instruction.rs))
 
     """
-
-
-
     # Program counter starts at 0
     program_counter = 0
 
