@@ -2,6 +2,7 @@ import re
 
 class input_parser():
     def __init__(self, filename):
+        print("hello")
         # open text_file-- feel dree to adjust file path to fit your computer
         # readInput = open("input.txt", "r")  # this is what it was before
         readInput = open(filename, "r")
@@ -97,8 +98,6 @@ class input_parser():
                             Rds[instN] = 'NOP'
 
                         instN += 1
-                        print("hello")
-                        print(self.regInitials, self.regNames)
 
                     r1m2 += 1  # switching to r1m2=2, meaning second row which is memory
                 else:
@@ -133,7 +132,8 @@ class input_parser():
             else:
                 regval = float(val.split("=")[1])
             self.registers[regname] = regval
-
+                # print("hello")
+                # print(self.regInitials, self.regNames)
 
 """
 # # Adders are dictionaries
