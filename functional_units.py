@@ -550,8 +550,11 @@ if __name__ == "__main__":
     # Begin iterating
     cycle = 0
     """
+    # create object called inputs to access regNames and regInitials
+    inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+    #inputparsed = input_parser("input.txt")
+    int_adder = int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
 
-    int_adder = IntegerAdder(3, 2, 1)
 
     # Issue instruction to fp_adder functional unit
     for instruction in instruction_buffer:

@@ -13,7 +13,11 @@ instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\
 #     print(instruction.__dict__)
 #     print("Instruction rs: {}".format(instruction.rs))
 
-int_adder = IntegerAdder(3, 2, 1)  #fidn out what is in IntergerAdder!!!!
+# create object called inputs to access regNames and regInitials
+inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+#inputparsed = input_parser("input.txt")
+int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
+#double check intention with Collin: arent these random values that can be replaced with input.txt?
 
 for instruction in instruction_buffer:
     # If there's room in the IntAdder and instruction is Add or Sub, issue it!
@@ -71,13 +75,12 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 
 
 # Get initialized values from readingInput
-# create object called inputs to access regNames and regInitials
-inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+
 
 # Separate floating from interger VALUES
 
 #initialize intRAT
-print()
+
 
 
 

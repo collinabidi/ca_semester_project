@@ -142,7 +142,11 @@ class input_parser():
                 indexL += 1
         self.regNames = elimNegTrail(self.regNames)
         self.regInitials = elimNegTrail(self.regInitials)
+
+        #make ARF int and floating point regNames and regInitials
         #print(self.regInitials)
+        print (self.regNames[0][0] == 'R')
+        #self.ARFNamesI =
 
 
 """
