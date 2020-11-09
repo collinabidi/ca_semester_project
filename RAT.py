@@ -76,7 +76,7 @@ inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
 print(inputs.regNames)
 print(inputs.regInitials)
 
-# Eliminate trailing -1s
+
 
 # Separate floating from interger VALUES
 

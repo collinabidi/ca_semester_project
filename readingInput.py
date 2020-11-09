@@ -22,8 +22,8 @@ class input_parser():
         limit = 100
         self.regNames = [-1]*limit  # str
         self.regInitials = [-1]*limit  # integers and floats
-        self.memLocs = [0]*limit  # whole numbers
-        self.memInitials = [0]*limit  # integers and floats
+        self.memLocs = [0]*limit  # whole numbers... could make 0s -1s?
+        self.memInitials = [0]*limit  # integers and floats... could make 0s -1s?
 
         def createInstDic(instV, N):  # function for subdictionary of instructions with type, destination register, input1 and 2
             instS[instN] = {}  # create new sub dictionary each time new instruction is in the text file
@@ -81,7 +81,6 @@ class input_parser():
                             regV = register.strip().split('=')  # new register value
                             self.regNames[regN] = regV[0]
                             self.regInitials[regN] = regV[1]
-
                             regN += 1  # counts the number of given registers
                     elif r1m2 == 2:  # MEMORY VALUES corresponding to their names
                         for memory in v:  # go through each index in list v
@@ -133,8 +132,22 @@ class input_parser():
             else:
                 regval = float(val.split("=")[1])
             self.registers[regname] = regval
-                # print("hello")
-                # print(self.regInitials, self.regNames)
+        # Eliminate trailing -1s in refNames and regInitials and redefine list
+
+        def elimNegTrail (trailingL):  #function that eliminates trailing
+            indexL = 0
+            for val in trailingL:
+                if isinstance(val, int):
+                    cleanL = trailingL[0:indexL]
+                    print(cleanL)
+                    return cleanL
+                indexL += 1
+
+
+        elimNegTrail(self.regNames)
+        elimNegTrail(self.regInitials)
+        #print(self.regInitials)
+
 
 """
 # # Adders are dictionaries
