@@ -66,6 +66,7 @@ intRAT = []
 floRAT = []
 
 regLim = 32 -1
+### monitor freePool to make sure limit is not exceeded
 freePLim = 100
 
 # Create RAT that holds label of registers
@@ -118,7 +119,6 @@ for register in floRAT:
             print(RATindexF)
             floRATvals[RATindexF] = inputs.ARFF[register] #set register value to RAT value storage
             floRATrenamed[RATindexF] = freePool.pop()
-
     RATindexF += 1
 
 print(floRATvals)
@@ -133,9 +133,34 @@ print(floRAT) ## checked to make sure matched with input.txt
 # get updated adder results from floating_units.py
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
 # destination ROB1 and value 10.3
-# result = int_adder.deliver()
-# print("First result: {}".format(result))
-# print(result["dest"])
-# print(result["answer"])
+# int_adder.tick()
+# int_adder.tick()
+result = int_adder.deliver() ##### check if not removing twice!!! instruction unit and RAT removal???
+print("First result: {}".format(result))
+print(result["dest"])
+print(result["answer"])
+
+# Replace rename registers is similar to initializer, but doesnt access ARF from readingIput.py
+# Accesses functional_units.py
+
+# RATindexI = 0
+# for register in intRAT:
+#     # checks if initial registerName corresponds with register in
+#     for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
+#         if register == initialR :
+#             print(RATindexI)
+#             intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
+#             intRATrenamed[RATindexI] = freePool.pop()
+#     RATindexI += 1
+#
+# print(intRATvals)
+# print(intRATrenamed)
+# print(intRAT) ## checked to make sure matched with input.txt
+
+
+# Tick
+
+
+
 
 #if there is a result intadder
