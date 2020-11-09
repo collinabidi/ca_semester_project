@@ -22,11 +22,12 @@ class LoadStoreQueue:
         # hardware params
         self.verbose = verbose
         self.num_stats_free = queue_len
+        self.queue_sz = queue_len
         self.cycles_in_mem = cycles_in_mem
         #sub-component params
         self.queue_stations = [] * queue_len
         self.result_buffer = []
-        self.mem_unit = Memory(mem_size, word_len=wl, mem_config=config)
+        self.mem_unit = Memory(mem_size, word_len=wl, mem_config=config, verbose=verbose)
         #component ref params
         self.reorder_buffer = rob
 
@@ -51,7 +52,7 @@ class LoadStoreQueue:
 
     # standard heartbeat operation
     def tick(self):
-        if self.num_stats_free == len(self.queue_stations):
+        if self.num_stats_free == self.queue_sz:
             # if nothing is queue'd, nothing to do.
             return
 
@@ -120,15 +121,17 @@ class LoadStoreQueue:
         return
 
     def __str__(self):
-        out_str= "============================== Load/Store Queue =============================\n"
+        out_str= "======================== Load/Store Queue [Sz: "+str(self.queue_sz)+"] =============================\n"
         out_str+="  Op |  q_rs  |  q_rt  |  v_rs  |  v_rt  | Str.Commit | Countdown | Immidiate\n"
         out_str+="-----------------------------------------------------------------------------\n"
+
         for stat in self.queue_stations:
             out_str += " " + stat["op"] + "  |  " + stat["qrs"] + "  |  " + \
                        stat["qrt"] + "  |  " + str(stat["vrs"]) + "  |  " +  \
                        str(stat["vrt"]) + "  |   " + str(stat["commit"]) +  \
                        "    |     " + str(stat["countdown"]) + "     |   " + \
                        str(stat["imm"]) + "\n"
+
         out_str += "---------------------------------------------------------------------------\n"
         out_str += "Results Buffer: {}".format(self.result_buffer)
         return out_str
@@ -152,7 +155,7 @@ def lsq_entry_ready(entry):
 
 # Memory management class
 class Memory:
-    def __init__(self, size_bytes, word_len=4, mem_config=None, verbose=True):
+    def __init__(self, size_bytes, word_len=4, mem_config=None, verbose=False):
         self.mem_sz = size_bytes
         self.word_len = word_len
         self.memory = []
@@ -196,7 +199,7 @@ class Memory:
                                     "  is not [0: " + str(self.mem_sz-1) + "]")
 
         # ARRAY ACCESSES
-        if io == "ld":
+        if io == "Ld":
             if self.verbose:
                 print("[MEMRY]: Accessed Load at EFF ADDR" + hex(byte_addr))
             return self.memory[int(byte_addr / self.word_len)]
@@ -315,3 +318,11 @@ if __name__ == "__main__":
     ld_str_q.tick()
     print(ld_str_q)
     print(ld_str_q.mem_unit)
+
+    ld_str_q.tick()
+    ld_str_q.tick()
+    ld_str_q.tick()
+    ld_str_q.tick()
+    print(ld_str_q)
+    ld_str_q.deliver()
+    print(ld_str_q)
