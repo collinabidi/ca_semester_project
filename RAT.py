@@ -117,9 +117,12 @@ for register in floRAT:
         if register == initialR :
             print(RATindexF)
             floRATvals[RATindexF] = inputs.ARFF[register] #set register value to RAT value storage
+            floRATrenamed[RATindexF] = freePool.pop()
+
     RATindexF += 1
 
 print(floRATvals)
+print(floRATrenamed)
 print(floRAT) ## checked to make sure matched with input.txt
 
 
