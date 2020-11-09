@@ -20,8 +20,8 @@ class input_parser():
         self.CBDe = 0
         # Seeds for register, memory adresses and instruction lists
         limit = 100
-        self.regNames = [0]*limit  # str
-        self.regInitials = [0]*limit  # integers and floats
+        self.regNames = [-1]*limit  # str
+        self.regInitials = [-1]*limit  # integers and floats
         self.memLocs = [0]*limit  # whole numbers
         self.memInitials = [0]*limit  # integers and floats
 
@@ -81,6 +81,7 @@ class input_parser():
                             regV = register.strip().split('=')  # new register value
                             self.regNames[regN] = regV[0]
                             self.regInitials[regN] = regV[1]
+
                             regN += 1  # counts the number of given registers
                     elif r1m2 == 2:  # MEMORY VALUES corresponding to their names
                         for memory in v:  # go through each index in list v

@@ -71,12 +71,17 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 
 
 # Get initialized values from readingInput
-
-#initialize intRAT
 # create object called inputs to access regNames and regInitials
 inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
 print(inputs.regNames)
 print(inputs.regInitials)
+
+# Eliminate trailing -1s
+
+# Separate floating from interger VALUES
+
+#initialize intRAT
+
 
 
 #initialize floRAT
