@@ -571,5 +571,6 @@ if __name__ == "__main__":
     # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
     # destination ROB1 and value 10.3
 
+    print(self.result_buffer)
     result = int_adder.deliver()
     print("First result: {}".format(result))
