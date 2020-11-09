@@ -34,7 +34,10 @@ class Instruction():
 
         ### uncomment for debugging each argument in buffer
         #print("ARG0: {}".format(args[0]))
-        args = args[0]
+        args = args[0] ### Collin, this is the instruction queue, right?
+        print("*********************************")
+        print(args)
+        print("*********************************")
         if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
             ### uncomment when debugging
             # print("R TYPE INSTRUCTION")
@@ -571,6 +574,6 @@ if __name__ == "__main__":
     # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
     # destination ROB1 and value 10.3
 
-    print(self.result_buffer)
+    #print(self.result_buffer)
     result = int_adder.deliver()
     print("First result: {}".format(result))

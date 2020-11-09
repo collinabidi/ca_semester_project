@@ -15,8 +15,13 @@ if __name__ == "__main__":
     print("Testing operation of all classes defined in functional_units.py")
 
     # Initialize the processor and all functional units
-    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt", "r") # changed: input.txt
-    integer_adder = IntegerAdder(3, 5, 1)
+    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt") # changed: input.txt
+    # create object called inputs to access regNames and regInitials
+    inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
+    #inputparsed = input_parser("input.txt")
+    int_adder = int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
+
+
     """ TODO
     reorder_buffer = ROB()
 
@@ -54,6 +59,7 @@ if __name__ == "__main__":
 
         # ISSUE stage
         print("\tISSUE STAGE")
+
 
         # EX stage
         print("\tEX STAGE")
