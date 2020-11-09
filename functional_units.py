@@ -478,7 +478,11 @@ class IntegerAdder:
         return self.output_waiting
 
     def deliver(self):
-        print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
+        print("hello")
+        print(self.result_buffer)
+        print("hello")
+
+        print("Delivering {} and removing from result buffer".format(self.result_buffer[0])) #changed 0 to 1 because instruction queue starts with 1?
         return self.result_buffer.pop(0)
 
 
@@ -566,5 +570,6 @@ if __name__ == "__main__":
 
     # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
     # destination ROB1 and value 10.3
+
     result = int_adder.deliver()
     print("First result: {}".format(result))
