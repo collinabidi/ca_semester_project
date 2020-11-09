@@ -26,7 +26,7 @@ for i in range(0, 10):
 
 # Issue instruction to fp_adder functional unit
 """
-
+# fake values into integer adder for debugging and testing
 int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"F1"})
 
 int_adder.issue({"op":"ADD","vj":3, "vk":6, "qj":None, "qk":None, "dest":"ROB2"})
@@ -47,13 +47,6 @@ int_adder.tick()
 #
 # int_adder.tick()
 """ # cleaning up RAT
-
-# This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
-# destination ROB1 and value 10.3
-result = int_adder.deliver()
-print("First result: {}".format(result))
-print(result["dest"])
-print(result["answer"])
 
 ######################### RAT ops really start #################################
 # create free pool
@@ -83,9 +76,11 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 
 
 # get updated adder results from floating_units.py
-# for i in range (0, 2):
-#     instruction = instruction_buffer[i]
-#     print(instruction.rd)
-# print(result["dest"]) #result from adder at first tick
+# This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
+# destination ROB1 and value 10.3
+result = int_adder.deliver()
+print("First result: {}".format(result))
+print(result["dest"])
+print(result["answer"])
 
 #if there is a result intadder
