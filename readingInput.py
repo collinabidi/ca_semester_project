@@ -145,7 +145,7 @@ class input_parser():
 
         #make ARF int and floating point regNames and regInitials
         #print(self.regInitials)
-        ###????ASSUME VALUES GO STRAIGHT TO ARF
+        # Initial VALUES come STRAIGHT from the ARF (official)
         self.ARFI = {}
         self. ARFF = {}
         for initial in range(0, len(self.regNames)): #index value is offset by 1 from length of reg

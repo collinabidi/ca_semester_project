@@ -540,7 +540,7 @@ if __name__ == "__main__":
     for i, instruction in enumerate(instruction_buffer):
         print("i = {}: value = {}".format(i, instruction))
         print(instruction.__dict__)
-        print("Instruction rd: {}".format(instruction.rd))
+
 
     """
     # Program counter starts at 0

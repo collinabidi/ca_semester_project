@@ -50,7 +50,7 @@ freePool = []  #  provides extra registers for renaming, called X
 intRAT = []
 floRAT = []
 
-regLim = 32 -1
+regLim = 32 - 1
 ### monitor freePool to make sure limit is not exceeded
 freePLim = 100
 
@@ -90,11 +90,11 @@ for register in intRAT:
             intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
             intRATrenamed[RATindexI] = freePool.pop()
     RATindexI += 1
-""" good for checking
+# good for checking
 print(intRATvals)
 print(intRATrenamed)
 print(intRAT) ## checked to make sure matched with input.txt
-"""
+
 # #initialize floRAT
 RATindexF = 0
 for register in floRAT:
@@ -105,11 +105,11 @@ for register in floRAT:
             floRATvals[RATindexF] = inputs.ARFF[register] #set register value to RAT value storage
             floRATrenamed[RATindexF] = freePool.pop()
     RATindexF += 1
-"""good for checking
+#good for checking
 print(floRATvals)
 print(floRATrenamed)
 print(floRAT) ## checked to make sure matched with input.txt
-"""
+
 
 ##################### Register Renamimg Once Ticking starts ####################
 # Rename register everytime
@@ -121,7 +121,7 @@ print(floRAT) ## checked to make sure matched with input.txt
 
 #it is initializer to grab results from functional units
 #result = int_adder.deliver() #could delete
-
+instructionN = 1
 for instruction in instruction_buffer:
     # If there's room in the IntAdder and instruction is Add or Sub, issue it!
     if instruction.op == "Sub" or instruction.op == "Add" and int_adder.num_filled_stations < len(int_adder.reservation_stations):
@@ -142,14 +142,15 @@ for instruction in instruction_buffer:
             #### potential bug! ?will work because there is only one instruction, but what if there are more than 1 results ready to go?
             ####for initialR in destName: # all initialized values are in architechture register!!!!!
             if register == renameName:
-                intRATvals[RATindexI] = instruction.rd #set register value to RAT value storage with rename value called result["answer"]
-                print(renameName[1])
-                intRATrenamed[int(renameName[1])] = freePool.pop()
+                print(register, renameName)
+                intRATvals[RATindexI] = destName #set register value to RAT value storage with rename value called result["answer"]
+                intRATrenamed[int(renameName[1])] = freePool.pop()  ### ???? check here for why its overwriting additional values with X freePool registers
             RATindexI += 1
 
-        print(intRATvals)
-        print(intRATrenamed)
-        print(intRAT) ## checked to make sure matched with input.txt
+            print(intRATvals)
+            print(intRATrenamed)
+            print(intRAT) ## checked to make sure matched with input.txt
+            print(instructionN,"***************************************")
     elif Name == "F":
         # Connect RAT to instruction queue to rename the register with X value
 
@@ -167,7 +168,6 @@ for instruction in instruction_buffer:
             ####for initialR in destName: # all initialized values are in architechture register!!!!!
             if register == renameName:
                 floRATvals[RATindexF] = result["answer"] #set register value to RAT value storage with rename value called result["answer"]
-                print(renameName[1])
                 floRATrenamed[int(renameName[1])] = freePool.pop()
             RATindexF += 1
 
@@ -180,6 +180,7 @@ for instruction in instruction_buffer:
 
     # Tick to next instruction
     int_adder.tick()
+    instructionN += 1
 
 
 
