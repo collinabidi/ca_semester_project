@@ -65,10 +65,15 @@ freePool = []  #  provides extra registers for renaming, called X
 intRAT = []
 floRAT = []
 
-for i in range(0,31):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
+regLim = 32 -1
+for i in range(0,regLim):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
     freePool.append("X" + str(i))
+    # Separate floating from interger VALUEs
     intRAT.append("R" + str(i))
     floRAT.append("F" + str(i))
+
+intRATvals = [[]]*regLim
+floRATvals = [[]]*regLim
 
 #registers
 # print(freePool)
@@ -77,13 +82,18 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 
 # Get initialized values from readingInput
 # print(inputs.ARFF)
-
-# Separate floating from interger VALUES
-
 #initialize intRAT
 
+# print(inputs.ARFI)
 
+for register in intRAT:
+    # checks if initial registerName corresponds with register in
+    for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
+        if register == initialR :
+            print(inputs.ARFI[register])
+            intRATvals[inputs.ARFI[register]] = inputs.ARFI[register] #set register value to RAT value storage
 
+print(intRATvals)
 
 #initialize floRAT
 
