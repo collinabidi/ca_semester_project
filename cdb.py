@@ -2,10 +2,11 @@
 # Common Data Bus class: picks an available result and passes it to subscribers
 
 CDB Interface:
-|Sources| <--poll test--  |Data Bus| ---data---> |Subscribers|
-|       |  ----data---->  |        |             |           |
+|Sources| <--poll res_buf--  |Data Bus| -.read_cdb()--> |Subscribers|
+|       |  --.deliver()--->  |        | <--.poll()----  |           |
 Sources must implement .deliver() so bus can pull in data to dist.
-Subscribers must call cdb.poll() to get available data on the cycle it's pulled
+Subscribers must implement .read_cdb() if they want automatic Delivery
+Subscribers call cdb.poll() to get available data on the cycle it's pulled
 
 
 Bus arbitration
@@ -43,7 +44,7 @@ class Arbiter:
 
 
     def source_poll(self):
-        # determines state change of source result buffer
+        # determines state change of source in result buffer
         for i in range(len(self.source_states)):
             ready_out = self.cdb.sources[i].results_buffer[0]
 
@@ -59,7 +60,7 @@ class Arbiter:
         if next_up is not None:
             self.source_states[next_up] = 0
 
-        self.output_q = self.output_q[1:]
+        self.output_q = self.output_q.pop(0)
         return next_up
 
 
@@ -105,6 +106,8 @@ class CommonDataBus:
     # defined as a standard command, but bus does not hold state data
     def rewind(self):
         self.reset()
+
+
 
 # Debug class / script
 class test_fu:
