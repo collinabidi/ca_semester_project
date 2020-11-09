@@ -97,7 +97,8 @@ class input_parser():
                             Rds[instN] = 'NOP'
 
                         instN += 1
-
+                        print("hello")
+                        print(self.regInitials, self.regNames)
 
                     r1m2 += 1  # switching to r1m2=2, meaning second row which is memory
                 else:
@@ -118,7 +119,7 @@ class input_parser():
         self.memory = [0] * 256
         self.registers = {}
         for val in memory_string:
-            temp = re.findall(r'\d+', val.split("=")[0]) 
+            temp = re.findall(r'\d+', val.split("=")[0])
             memloc = int(temp[0])
             if "." in val.split("=")[1]:
                 memval = float(val.split("=")[1])
@@ -132,6 +133,7 @@ class input_parser():
             else:
                 regval = float(val.split("=")[1])
             self.registers[regname] = regval
+
 
 """
 # # Adders are dictionaries

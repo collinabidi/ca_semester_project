@@ -69,6 +69,8 @@ for i in range(0,31):#could potentially change this limit to number of instructi
 # print(intRAT)
 # print(floRAT)
 
+
+# Get initialized values from readingInput
 #initialize intRAT
 
 
