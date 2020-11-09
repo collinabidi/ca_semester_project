@@ -2,7 +2,6 @@ import re
 
 class input_parser():
     def __init__(self, filename):
-        print("hello")
         # open text_file-- feel dree to adjust file path to fit your computer
         # readInput = open("input.txt", "r")  # this is what it was before
         readInput = open(filename, "r")
@@ -138,14 +137,11 @@ class input_parser():
             indexL = 0
             for val in trailingL:
                 if isinstance(val, int):
-                    cleanL = trailingL[0:indexL]
-                    print(cleanL)
-                    return cleanL
+                    trailingL = trailingL[0:indexL]
+                    return trailingL
                 indexL += 1
-
-
-        elimNegTrail(self.regNames)
-        elimNegTrail(self.regInitials)
+        self.regNames = elimNegTrail(self.regNames)
+        self.regInitials = elimNegTrail(self.regInitials)
         #print(self.regInitials)
 
 
