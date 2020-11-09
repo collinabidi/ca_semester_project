@@ -3,6 +3,21 @@
 
 """
     Load Store Queue
+     - mem_size: number of bytes in memory (cooperates with arg wl=4 [word_len])
+     - queue_len: number of stations available in memory load/store queue
+     - cyc_in_mem: how long it takes to get a response from memory
+        -- implemented as "countdown" on the visualization
+    - rob: reference to the reorder buffer objects
+    - config=None: Memory Initialization configuration
+
+    The LSQ expects:
+    - The ROB to have .request(register) so that it can poll for avialable data
+    - The ROB to call lsq.mem_comitt(register) so that it can detect a commit
+        relevant to a store operation
+
+    The LSQ implements:
+    - .deliver()/result_buffer[] so it may be a source for the CDB
+
 
     Core Memory Block
     - Block is parameterizable in the following ways:
