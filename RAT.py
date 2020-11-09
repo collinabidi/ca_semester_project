@@ -69,6 +69,6 @@ print(floRAT)
 for i in range (0, 2):
     instruction = instruction_buffer[i]
     print(instruction.rd)
-print(result["dest"])
+print(result["dest"]) #result from adder at first tick
 
 #if there is a result intadder
