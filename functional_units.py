@@ -478,9 +478,6 @@ class IntegerAdder:
         return self.output_waiting
 
     def deliver(self):
-        print("hello")
-        print(self.result_buffer)
-        print("hello")
         print("Delivering {} and removing from result buffer".format(self.result_buffer[0])) #changed 0 to 1 because instruction queue starts with 1?
         return self.result_buffer.pop(0)
 

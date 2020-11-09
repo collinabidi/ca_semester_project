@@ -6,12 +6,14 @@ instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\
 #instruction_buffer = InstructionBuffer("input.txt")
 
 
-for i, instruction in enumerate(instruction_buffer):
-    print("i = {}: value = {}".format(i, instruction))
-    print(instruction.__dict__)
-    print("Instruction rs: {}".format(instruction.rs))
+### useful for debugging
+### printer to know what is in the instruction buffer
+# for i, instruction in enumerate(instruction_buffer):
+#     print("i = {}: value = {}".format(i, instruction))
+#     print(instruction.__dict__)
+#     print("Instruction rs: {}".format(instruction.rs))
 
-int_adder = IntegerAdder(3, 2, 1)
+int_adder = IntegerAdder(3, 2, 1)  #fidn out what is in IntergerAdder!!!!
 
 for instruction in instruction_buffer:
     # If there's room in the IntAdder and instruction is Add or Sub, issue it!
@@ -23,6 +25,7 @@ for i in range(0, 10):
     int_adder.tick()
 
 # Issue instruction to fp_adder functional unit
+"""
 
 int_adder.issue({"op":"ADD","vj":10, "vk":5, "qj":None, "qk":None, "dest":"F1"})
 
@@ -43,7 +46,7 @@ int_adder.tick()
 # int_adder.tick()
 #
 # int_adder.tick()
-
+""" # cleaning up RAT
 
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
 # destination ROB1 and value 10.3
@@ -52,7 +55,7 @@ print("First result: {}".format(result))
 print(result["dest"])
 print(result["answer"])
 
-
+######################### RAT ops really start #################################
 # create free pool
 # make 32 trasnsition registers (will probably not need more)
 # transition registers from freepool are differentiated by 'X'
