@@ -4,6 +4,9 @@ class Processor:
     def __init__(self, config_file, verbose=False):
         self.cycle_count = 0
         # initialize all components here
+        # 1. Get input data from config file
+
+        # 2. Initialize every component with references to the other components 
         return
 
 
