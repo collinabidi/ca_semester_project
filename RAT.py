@@ -66,14 +66,24 @@ intRAT = []
 floRAT = []
 
 regLim = 32 -1
+freePLim = 100
+
+# Create RAT that holds label of registers
 for i in range(0,regLim):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
-    freePool.append("X" + str(i))
     # Separate floating from interger VALUEs
     intRAT.append("R" + str(i))
     floRAT.append("F" + str(i))
 
+# Create freePool that generates 100 extra registers for renaming
+for i in range(0,freePLim):#could potentially change this limit to number of instructions in queue because transition registers will not exceed queue
+    freePool.append("X" + str(i))# need a lot of freepool values, so arbitraty multiplier, 15
+
+
 intRATvals = [[]]*regLim
 floRATvals = [[]]*regLim
+
+intRATrenamed = [[]]*regLim
+floRATrenamed = [[]]*regLim
 
 #registers
 # print(freePool)
@@ -92,20 +102,30 @@ for register in intRAT:
         if register == initialR :
             print(RATindexI)
             intRATvals[RATindexI] = inputs.ARFI[register] #set register value to RAT value storage
+            intRATrenamed[RATindexI] = freePool.pop()
     RATindexI += 1
 
 print(intRATvals)
-print(intRAT)
+print(intRATrenamed)
+print(intRAT) ## checked to make sure matched with input.txt
 
 # #initialize floRAT
-# for register in floRAT:
-#     # checks if initial registerName corresponds with register in
-#     for initialR in inputs.ARFI: # all initialized values are in architechture register!!!!!
-#         if register == initialR :
-#             print(inputs.ARFI[register])
-#             intRATvals[inputs.ARFI[register]] = inputs.ARFI[register] #set register value to RAT value storage
-#
-# print(intRATvals)
+RATindexF = 0
+for register in floRAT:
+    # checks if initial registerName corresponds with register in
+    for initialR in inputs.ARFF: # all initialized values are in architechture register!!!!!
+        if register == initialR :
+            print(RATindexF)
+            floRATvals[RATindexF] = inputs.ARFF[register] #set register value to RAT value storage
+    RATindexF += 1
+
+print(floRATvals)
+print(floRAT) ## checked to make sure matched with input.txt
+
+
+##################### Register Renamimg Once Ticking starts ####################
+# Rename register everytime
+# Get instruction queue registers
 
 # get updated adder results from floating_units.py
 # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
