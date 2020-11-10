@@ -105,6 +105,17 @@ class InstructionBuffer:
         for i, inst in enumerate(unparsed_instructions):
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
+        self.PC = 0
+
+    def fetch(self):
+        pc = self.PC
+        self.PC += 1
+        if pc == len(self.instruction_list):
+            return Instruction() # return NOP if we get to the end of the buffer.  Is this the behavior we want?
+        return self.instruction_list[pc]
+
+    def branch(self, pc_addr):
+        self.PC = pc_addr
 
     def __str__(self):
         output_string = "================================\n"
