@@ -160,7 +160,7 @@ class FPMultiplier:
         """ Function to insert an instruction into the reservation station
 
         Args:
-            instruction (dict): the instruction to be inserted into an available reservation station ["op", ]
+            instruction (Instruction): the instruction to be inserted into an available reservation station
         """
         # Add instruction if there's enough room in the reservation stations
         if self.num_filled_stations < len(self.reservation_stations):
@@ -169,9 +169,19 @@ class FPMultiplier:
             if free_stations == []:
                 print("No free reservation stations!")
             tag = free_stations[0]
-            self.reservation_stations[tag] = {"busy":True, "op":instruction["op"], \
-                "vj":instruction["vj"], "vk":instruction["vk"], "qj":instruction["qj"], \
-                "qk":instruction["qk"], "answer":None, "countdown":self.cycles_in_ex, "dest":instruction["dest"]}  # TODO Need to set values from the incoming instruction. Pulls values from ARF/RAT/ROB?
+            # Add Rd, Rs, Rt
+            if instruction.op == "Mult.d":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
+                print("Checking ROB for {}".format(instruction.rt))
+                # TODO
+            elif instruction.op == "Div.d":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
             self.num_filled_stations += 1
         else:
             return Warning("Warning! Reservation stations full! Did not insert instruction")
@@ -228,6 +238,17 @@ class FPMultiplier:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
+    
+    def read_cdb(self, bus_data):
+        """ Function used by cdb to update data in reservation stations
+        """
+        for tag, station in self.reservation_stations.items():
+            if station["qj"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["answer"]))
+                station["vj"] = bus_data["answer"]
+            if station["qk"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["answer"]))
+                station["vk"] = bus_data["answer"]
 
     def __str__(self):
         output_string = "===================================================FP Multiply Unit=================================================================================\n"
@@ -291,9 +312,23 @@ class FPAdder:
             if free_stations == []:
                 print("No free reservation stations!")
             tag = free_stations[0]
-            self.reservation_stations[tag] = {"busy":True, "op":instruction["op"], \
-                "vj":instruction["vj"], "vk":instruction["vk"], "qj":instruction["qj"], \
-                "qk":instruction["qk"], "answer":None, "countdown":self.cycles_in_ex, "dest":instruction["dest"]}  # TODO Need to set values from the incoming instruction. Pulls values from ARF/RAT/ROB?
+
+            if instruction.op == "Add.d":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
+                print("Checking ROB for {}".format(instruction.rt))
+                # TODO
+            elif instruction.op == "Sub.d":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
+                print("Checking ROB for {}".format(instruction.rt))
+                # TODO
+
+
             self.num_filled_stations += 1
         else:
             return Warning("Warning! Reservation stations full! Did not insert instruction")
@@ -350,6 +385,17 @@ class FPAdder:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
+
+    def read_cdb(self, bus_data):
+        """ Function used by cdb to update data in reservation stations
+        """
+        for tag, station in self.reservation_stations.items():
+            if station["qj"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["answer"]))
+                station["vj"] = bus_data["answer"]
+            if station["qk"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["answer"]))
+                station["vk"] = bus_data["answer"]
 
     def __str__(self):
         output_string = "===================================================FP Adder Unit=================================================================================\n"
@@ -421,8 +467,24 @@ class IntegerAdder:
             if free_stations == []:
                 print("No free reservation stations!")
             tag = free_stations[0]
-            self.reservation_stations[tag] = {"busy":True, "op":instruction["op"],"vj":instruction["vj"], "vk":instruction["vk"], \
-                "qj":instruction["qj"], "qk":instruction["qk"], "answer":None, "dest":instruction["dest"]} # TODO Need to set values from the incoming instruction. Pulls values from ARF/RAT/ROB?
+            if instruction.op == "Add":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
+                print("Checking ROB for {}".format(instruction.rt))
+                # TODO
+            elif instruction.op == "Sub":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
+
+                print("Checking ROB for {}".format(instruction.rt))
+                # TODO
+            elif instructin.op == "Addi":
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "vk":instruction.addr_imm, "countdown":self.cycles_in_ex, "answer":None, "dest":instruction.rt}
+                print("Checking ROB for {}".format(instruction.rs))
+                # TODO
             self.num_filled_stations += 1
         else:
             return Warning("Warning! Reservation stations full! Did not insert instruction")
@@ -437,6 +499,17 @@ class IntegerAdder:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
+    
+    def read_cdb(self, bus_data):
+        """ Function used by cdb to update data in reservation stations
+        """
+        for tag, station in self.reservation_stations.items():
+            if station["qj"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["answer"]))
+                station["vj"] = bus_data["answer"]
+            if station["qk"] == bus_data["dest"]:
+                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["answer"]))
+                station["vk"] = bus_data["answer"]
 
     def tick(self):
         """ Go forward once cycle. If results are buffered on output, raise waiting flag
@@ -488,7 +561,6 @@ class IntegerAdder:
         print("Delivering {} and removing from result buffer".format(self.result_buffer[0])) #changed 0 to 1 because instruction queue starts with 1?
         return self.result_buffer.pop(0)
 
-
     def __str__(self):
         if self.executing:
             output_string = "===================================================Integer Adder: Executing=================================================\n"
@@ -506,75 +578,74 @@ class IntegerAdder:
         output_string += "\n==================================================================================================================================\n"
         return output_string
 
+class ROB():
+    def __init__(self, num_rob_entries):
+        self.num_entries = num_rob_entries
+        self.rob = {}
+        for i in range(num_rob_entries):
+            self.rob["ROB{}".format(i)] = {"type":None, "dest":None, "value":None, "finished":False}
+        self.head = self.rob["ROB1"]
+
+    def __str__(self):
+        output_string = "===================ROB====================\n"
+
+        output_string += "Reg.\tType\tDest\tValue\tFinished\n"
+        output_string += "------------------------------------------\n"
+        for tag, parameters in self.rob.items():
+            output_string += "{}\t{}\t{}\t{}\t{}\n".format(tag, parameters["type"], parameters["dest"], parameters["value"], parameters["finished"])
+        output_string += "\n=========================================\n"
+        return output_string
+    
+    def read_cdb(self, bus_data):
+        for entry, parameters in self.rob.items():
+            if entry == bus_data["dest"]:
+                parameters["value"] = bus_data["answer"]
+                parameters["finished"] = True
+                if self.head == entry:
+                    if parameters["type"] == "Ld" or parameters["type"] == "Sd":
+                        # TODO
+                        print("Load/Store instruction ready to commit {} to load/store queue".format(entry))
+                    else:
+                        # TODO
+                        print("Ready to commit {} from ROB to ARF_FP and ARF_INT. Don't forget to purge from RAT!".format(entry))
+    
+    def register_arfs(self, fp_arf, int_arf):
+        print("Registering the ARFs with the ROB to make committing easier")
+        self.fp_arf = fp_arf
+        self.int_arf = int_arf
+
+    def commit(self, register_name):
+        if self.rob[register_name]["finished"] and self.rob[register_name]["type"] not in ["Sd", "Ld"]:
+            if "F" in self.rob[register_name]["dest"]:
+                print("Committing {} - {} to FP ARF".format(register_name, value))
+                self.fp_arf[register_name] = value
+            elif "R" in self.rob[register_name]["dest"]:
+                print("Committing {} - {} to INT ARF".format(register_name, value))
+                self.int_arf[register_name] = value
+    
+    def mem_commit(self, register_name):
+        if self.rob[register_name]["type"] in ["Sd", "Ld"]:
+            print("Committing {} - {} to Load/Store Queue")
+            # TODO
+    # TODO: setting the ROB fields
+    # set()
+    # reset()
+    # update()            
+
+
 # This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":
-    print("Testing operation of all classes defined in functional_units.py")
+    # Assume 16 maximum registers for the integer and floating_point register files
+    int_arf = {"R{}".format(i):0 for i in range(1,33)}
+    fp_arf = {"F{}".format(i):0.0 for i in range(1,33)}
+    print("Integer ARF: {}".format(int_arf))
+    print("FP ARF: {}".format(fp_arf))
 
-    # Initialize the processor and all functional units
-    instruction_buffer = InstructionBuffer(r"C:\Users\HP\github\ca_semester_project\input.txt")
-    #instruction_buffer = InstructionBuffer("input.txt")
+    rob = ROB(16)
+    rob.register_arfs(fp_arf, int_arf)
+    
+    rob.commit("ROB1")
 
-    """
-    input_params = input_parser("input.txt")
-    integer_adders = []
-    for i in range(input_params.intA["nfu"]):
-        integer_adders[i] = IntegerAdder(input_params.intA["nrg"], input_parser.intA["cie"], i)
-    fp_adders = []
-    for i in range(input_params.FPA["nfu"]):
-        fp_adders[i] = FPAdder(input_params.FPA["nrg"], input_parser.FPA["cie"], i)
-    fp_multipliers = []
-    for i in range(input_params.FPM["nfu"]):
-        fp_multipliers[i] = FPMultiplier(input_params.FPM["nrg"], input_parser.FPM["cie"], i)
-    """
-
-    # What's in the instruction buffer?
-    print(instruction_buffer)
-
-    # This prints out the instruction buffer objects one by one
-    # i = 0
-    # for value in instruction_buffer:
-    #     print("i = {}: value = {}".format(i, value))
-    #     i = i + 1
-
-    print("INSTRUCTION QUEUE")
-    for i, instruction in enumerate(instruction_buffer):
-        print("i = {}: value = {}".format(i, instruction))
-        print(instruction.__dict__)
-
-
-    """
-    # Program counter starts at 0
-    program_counter = 0
-
-    # Table to keep track of cycle timing
-    timing_table = {}
-    for inst in instruction_buffer:
-        timing_table[str(inst)] = {"ISSUE":" ","EX":" ","MEM":" ","WB":" ","COMMIT":" "}
-
-    # Begin iterating
-    cycle = 0
-    """
-    # create object called inputs to access regNames and regInitials
-    inputs = input_parser(r"C:\Users\HP\github\ca_semester_project\input.txt")
-    #inputparsed = input_parser("input.txt")
-    int_adder = int_adder = IntegerAdder(int(inputs.intA['nrg']), int(inputs.intA['cie']), int(inputs.intA['nfu']))
-
-
-    # Issue instruction to fp_adder functional unit
-    for instruction in instruction_buffer:
-        # If there's room in the IntAdder and instruction is Add or Sub, issue it!
-        if instruction.op == "Sub" or instruction.op == "Add" and int_adder.num_filled_stations < len(int_adder.reservation_stations):
-            int_adder.issue({"op":instruction.op,"vj":10, "vk":20, "qj":instruction.rs, "qk":instruction.rt, "dest":instruction.rd})
-        int_adder.tick()
-        print(int_adder)
-
-    for i in range(0, 10):
-        int_adder.tick()
-        print(int_adder)
-
-    # This will give you a dictionary: for example, {"dest","ROB1":"answer":10.3} would be the output for an operation with
-    # destination ROB1 and value 10.3
-
-    #print(self.result_buffer)
-    result = int_adder.deliver()
-    print("First result: {}".format(result))
+    print(rob)
+    print("Integer ARF: {}".format(int_arf))
+    print("FP ARF: {}".format(fp_arf))
