@@ -206,13 +206,13 @@ class RegisterAliasTable:
         # check for resource dependancy (ROB full)
         if transformation is not None:
             #ID target func_unit and attempt to push instruction
-            target_fu = self.routing_tbl[transformation["op"]]
+            target_fu = self.routing_tbl[transformation.op]
             push_result = self.func_units[target_fu].issue(transformation)
 
             # if pushed, clear the held instruction
             if push_result is not type(Warning):
                 self.actv_instruction = None
-                if target_fu in ["Beq", "Bne"]:
+                if transformation.op in ["Beq", "Bne"]:
                     # if the instruction was a branch, it also needs pushed to btb
                     #  route_tbl pushes it to INT for evaluation
                     self.func_units["BTB"].issue(transformation)

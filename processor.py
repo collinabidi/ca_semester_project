@@ -6,7 +6,7 @@ class Processor:
         # initialize all components here
         # 1. Get input data from config file
 
-        # 2. Initialize every component with references to the other components 
+        # 2. Initialize every component with references to the other components
         return
 
 
