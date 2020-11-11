@@ -671,7 +671,6 @@ class BTB:
             print("***MISPREDICTION*** Stall a cycle")
             self.correct = None
             self.branch_entry = -1
-
             # Call rewind on all relevant units
             self.rob.rewind()
             self.rat.rewind()
