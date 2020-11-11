@@ -46,7 +46,10 @@ class Arbiter:
     def source_poll(self):
         # determines state change of source in result buffer
         for i in range(len(self.source_states)):
-            ready_out = self.cdb.sources[i].results_buffer[0]
+            if len(self.cdb.sources[i].results_buffer) > 0:
+                ready_out = self.cdb.sources[i].results_buffer[0]
+            else:
+                ready_out = None
 
             if ready_out is not None and self.source_states[i] == 0:
                 self.source_states[i] = 1
