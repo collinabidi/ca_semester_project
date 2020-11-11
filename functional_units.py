@@ -507,6 +507,7 @@ class ROB:
 
     def tick(self):
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
+        print("ROB Instruction in the front: {}".format(self.rob[self.front]))
         if self.rob[self.front]["finished"] == True:
             if entry["type"] == "Ld" or entry["type"] == "Sd":
                 self.mem_commit(bus_data["dest"])
@@ -525,10 +526,12 @@ class ROB:
             self.front = 0
             self.rear = 0
             entry["tag"] = "ROB{}".format(self.rear+1)
+            entry["finished"] = False
             self.rob[self.rear] = entry
         else:
             self.rear = (self.rear + 1) % self.num_entries
             entry["tag"] = "ROB{}".format(self.rear+1)
+            entry["finished"] = False
             self.rob[self.rear] = entry
         return self.rob[self.rear]["tag"]
 

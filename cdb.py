@@ -15,7 +15,7 @@ Bus arbitration
 - Ties are arbitrated by order of access
 
 Delivery to bus
- - Bus calls source.deliver() to get the data out of the source results_buffer
+ - Bus calls source.deliver() to get the data out of the source result_buffer
  - .deliver() should also clear that entry from the output queue.
 
 Pick up from bus
@@ -46,8 +46,8 @@ class Arbiter:
     def source_poll(self):
         # determines state change of source in result buffer
         for i in range(len(self.source_states)):
-            if len(self.cdb.sources[i].results_buffer) > 0:
-                ready_out = self.cdb.sources[i].results_buffer[0]
+            if len(self.cdb.sources[i].result_buffer) > 0:
+                ready_out = self.cdb.sources[i].result_buffer[0]
             else:
                 ready_out = None
 
@@ -58,12 +58,16 @@ class Arbiter:
 
     def arbitrate(self):
         # returns the next in line for CDB service or None if no data should tx
-        next_up = self.output_q[0]
+        if len(self.output_q) > 0:
+            next_up = self.output_q[0]
+        else:
+            next_up = None
 
         if next_up is not None:
             self.source_states[next_up] = 0
 
-        self.output_q = self.output_q.pop(0)
+        if len(self.output_q) > 0:
+            self.output_q = self.output_q.pop(0)
         return next_up
 
 

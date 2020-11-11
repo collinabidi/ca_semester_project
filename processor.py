@@ -89,7 +89,7 @@ class Processor:
             self.reorder_buf.tick()
 
             #print system state
-            self.sys_print()
+            sys_print(0)
 
             if bp is True:
                 print("Cycle: " + str(self.cycle_count))

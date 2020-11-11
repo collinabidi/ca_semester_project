@@ -16,7 +16,7 @@
         relevant to a store operation
 
     The LSQ implements:
-    - .deliver()/results_buffer[] so it may be a source
+    - .deliver()/result_buffer[] so it may be a source
 
     Core Memory Block
     - Block is parameterizable in the following ways:
@@ -40,7 +40,7 @@ class LoadStoreQueue:
         self.cycles_in_mem = int(cycles_in_mem)
         #sub-component params
         self.queue_stations = [] * int(queue_len)
-        self.results_buffer = []
+        self.result_buffer = []
         self.rb_history = []
         self.lsq_history = []
         self.CDBe = int(CDBe)
@@ -72,7 +72,7 @@ class LoadStoreQueue:
             return
 
         queue_leader = self.queue_stations[0]
-        if lsq_entry_ready(queue_leader) and(len(self.results_buffer) < self.CDBe):
+        if lsq_entry_ready(queue_leader) and(len(self.result_buffer) < self.CDBe):
             # register is ready to go to mem. & not waiting to tender a result
             queue_leader["countdown"] -= 1
             if (queue_leader["countdown"]) == 0:
@@ -86,7 +86,7 @@ class LoadStoreQueue:
                     queue_leader["vrs"] = res
                     result = {"op":"Ld", "pc":None,
                               "dest":queue_leader["qrs"], "value":res}
-                    self.results_buffer.append(result)
+                    self.result_buffer.append(result)
 
                 # dequeue the operation
                 self.num_stats_free += 1
@@ -94,7 +94,7 @@ class LoadStoreQueue:
 
 
     def deliver(self):
-        return self.results_buffer.pop(0)
+        return self.result_buffer.pop(0)
 
 
     # THIS NEEDS TO BE CALLED BY THE ROB WHEN IT COMMITS A VALUE
@@ -121,12 +121,12 @@ class LoadStoreQueue:
     # clear held values
     def reset(self, mem_reset=False):
         self.queue_stations = []
-        self.results_buffer = []
+        self.result_buffer = []
         if mem_reset:
             self.mem_unit.reset()
 
     def save_state(self):
-        self.rb_history = self.results_buffer.copy()
+        self.rb_history = self.result_buffer.copy()
         self.lsq_histroy = self.queue_stations.copy()
 
     # branch prediction rollback
@@ -147,7 +147,7 @@ class LoadStoreQueue:
                        str(stat["imm"]) + "\n"
 
         out_str += "---------------------------------------------------------------------------\n"
-        out_str += "Results Buffer: {}".format(self.results_buffer)
+        out_str += "Results Buffer: {}".format(self.result_buffer)
         return out_str
 
 
