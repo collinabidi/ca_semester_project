@@ -10,31 +10,45 @@ class RegisterAliasTable:
         self.instr_queue = None      # reference to Instruction Buffer
         self.rob = None              # reference to Reorder Buffer
         self.func_units = {}         # reference to func units
+        self.btb = None              # reference to Branch Translation Buffer
 
         self.__init_registers__(register_qty)
 
-
+    # fix me to handle PC correctly
     def tick(self):
+        hazard_flag = False
+
         # check for active stall and fetch
-        if self.actv_instruction is None:
-            self.actv_instruction = self.instr_queue.fetch()
+        work_instruction = self.actv_instruction
+        if work_instruction is None:
+            next_pc = self.btb.fetch_pc()
+
+            if next_pc is None:
+                hazard_flag = True
+                work_instruction = Instruction()  # Issue Nop
+            else:
+                work_instruction = self.instr_queue.fetch(next_pc)
+                self.actv_instruction = work_instruction
 
         # translate ISA registers into actual registers (decode)
-        transformation = self.__translate__(self.actv_instruction)
+        transformation = self.__translate__(work_instruction)
 
         # check for resource dependancy (ROB full)
-        if transformation is not None:
-            #ID target func_unit and attempt to push instruction
-            target_fu = self.routing_tbl[transformation.op]
-            push_result = self.func_units[target_fu].issue(transformation)
+        if transformation is None:
+            hazard_flag = True
+            transformation = Instruction() # ROB structural hazard, issue NOP
 
-            # if pushed, clear the held instruction
-            if push_result is not type(Warning):
-                self.actv_instruction = None
-                if transformation.op in ["Beq", "Bne"]:
-                    # if the instruction was a branch, it also needs pushed to btb
-                    #  route_tbl pushes it to INT for evaluation
-                    self.func_units["BTB"].issue(transformation)
+        # ID target func_unit and attempt to push instruction
+        target_fu = self.routing_tbl[transformation.op]
+        push_result = self.func_units[target_fu].issue(transformation)
+
+        # if pushed, clear the held instruction
+        if push_result is not type(Warning) and hazard_flag is False:
+            self.actv_instruction = None
+            if transformation.op in ["Beq", "Bne"]:
+                # if the instruction was a branch, it also needs pushed to btb
+                #  route_tbl pushes it to INT for evaluation
+                self.func_units["BTB"].issue(transformation)
         # if could not push or transform, we still hold this actv instruction, effectively stalling one cycle
 
 

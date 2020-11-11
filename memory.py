@@ -72,7 +72,7 @@ class LoadStoreQueue:
             return
 
         queue_leader = self.queue_stations[0]
-        if lsq_entry_ready(queue_leader) and len(self.result_buffer) < self.CDBe:
+        if lsq_entry_ready(queue_leader) and len(self.result_buffer) and (len(self.result_buffer) < self.CDBe):
             # register is ready to go to mem. & not waiting to tender a result
             queue_leader["countdown"] -= 1
             if (queue_leader["countdown"]) == 0:

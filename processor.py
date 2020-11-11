@@ -66,7 +66,7 @@ class Processor:
         # run the heartbeat loop
         if self.verbose:
             sys_msg(self.instr_buf)
-
+        
         while(1):
             # fetch/deocde/issue
             self.cycle_count += 1

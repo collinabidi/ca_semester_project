@@ -79,21 +79,16 @@ class InstructionBuffer:
         for i, inst in enumerate(unparsed_instructions):
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
-        self.PC = 0
 
     def fetch(self, pc):
         """ Get the next instruction from the buffer
         """
-        pc = self.PC
-        self.PC += 1
         # If we reach the end of the instructions, return a NOP
         if pc == len(self.instruction_list):
             print("NO MORE INSTRUCTIONS!")
             return Instruction()
         return self.instruction_list[pc]
 
-    def branch(self, pc_addr):
-        self.PC = pc_addr
 
     def __str__(self):
         output_string = "================================\n"
@@ -576,7 +571,7 @@ class ROB:
             entry_index = self.rob.index(register_name)
             self.LSQ.mem_commit(self.rob[entry_index]["tag"])
             print("Mem Committing {} to Load/Store Queue".format(self.rob[entry_index]["tag"]))
-            
+
 
     def request(self, register_name):
         if "ROB" in register_name:
