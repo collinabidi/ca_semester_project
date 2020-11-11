@@ -57,8 +57,8 @@ class Processor:
         self.reg_alias_tbl.func_units["BTB"] = self.brnch_trnsl_buf
 
         # ========== REORDER BUFFER =============
-        self.reorder_buf.rat = self.reg_alias_tbl
-        self.reorder_buf.lsu = self.func_units[0]
+        self.reorder_buf.RAT = self.reg_alias_tbl
+        self.reorder_buf.LSQ = self.func_units[0]
 
 
 
@@ -71,6 +71,7 @@ class Processor:
             # fetch/deocde/issue
             self.cycle_count += 1
             self.reg_alias_tbl.tick()
+            return
             self.brnch_trnsl_buf.tick()
 
             # execute
