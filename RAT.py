@@ -14,6 +14,21 @@ class RegisterAliasTable:
 
         self.__init_registers__(register_qty)
 
+    def __str__(self):
+        output_string = "============== RAT =====================\n"
+        output_string += "Entry\tValue\t|\tEntry\tValue\n"
+        output_string += "----------------------------------------\n"
+        i = 1
+        for key, value in self.rat_map.items():
+            output_string += "{}\t{}".format(key, value)
+            if i % 2 == 0:
+                output_string += "\n"
+            else:
+                output_string += "\t|\t"
+            i += 1
+        output_string += "========================================\n"
+        return output_string
+
     # fix me to handle PC correctly
     def tick(self):
         hazard_flag = False
@@ -21,7 +36,7 @@ class RegisterAliasTable:
         # check for active stall and fetch
         work_instruction = self.actv_instruction
         if work_instruction is None:
-            next_pc = self.btb.fetch_pc()
+            next_pc = self.func_units["BTB"].fetch_pc()
 
             if next_pc is None:
                 hazard_flag = True
@@ -100,7 +115,7 @@ class RegisterAliasTable:
         self.routing_tbl = {"Beq":"INT", "Bne":"INT", "Addi":"FPA", \
                             "Ld":"LSQ",  "Sd":"LSQ",  "Add.d":"FPA", \
                             "Add":"INT", "Sub":"INT", "Sub.d":"FPA", \
-                            "Mult.d":"FPM", "NOOP":"NOP"}
+                            "Mult.d":"FPM", "NOP":"NOP"}
 
         self.func_units = {"NOP":NoopHandler(),
                            "INT":None,

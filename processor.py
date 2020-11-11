@@ -71,12 +71,14 @@ class Processor:
             # fetch/deocde/issue
             self.cycle_count += 1
             self.reg_alias_tbl.tick()
-            return
             self.brnch_trnsl_buf.tick()
 
             # execute
             for unit in self.func_units:
+                print(unit)
                 unit.tick()
+                print(unit)
+
 
             # writeback
             self.CDB.tick()
@@ -97,5 +99,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files\\test1.txt", verbose=True)
+    my_processor = Processor("test_files/test1.txt", verbose=True)
     my_processor.run_code(bp=True)

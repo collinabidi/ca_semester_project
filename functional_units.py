@@ -610,6 +610,7 @@ class BTB:
         self.branch_pc = 0
         self.branch_entry = -1
         self.correct = None
+        self.new_pc = 0
 
         # Register any unit that needs to have save_state() or rewind() called
         self.rob = rob
@@ -629,6 +630,9 @@ class BTB:
             output_string += "\n"
         output_string += "=========================\n"
         return output_string
+
+    def fetch_pc(self):
+        return self.new_pc
 
     def issue(self, instruction, current_pc):
         """ Function to issue instruction to the BTB. Will return value of predicted PC
@@ -656,12 +660,12 @@ class BTB:
                 self.prediction = True
                 new_pc = current_pc + 4 + self.predicted_offset * 4
                 print("Old PC: {}\tNew PC: {}".format(current_pc, new_pc))
-                return new_pc
+                self.new_pc = new_pc
             else:
                 print("Predict NOT TAKEN")
                 self.prediction = False
                 self.branch_pc = current_pc
-                return current_pc + 4
+                self.new_pc = current_pc + 4
 
     def tick(self):
         """ Will execute
