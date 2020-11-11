@@ -147,19 +147,17 @@ class FPMultiplier:
             tag = free_stations[0]
             # Add Rd, Rs, Rt
             if instruction.op == "Mult.d":
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
-                print("Checking ROB for {}".format(instruction["rt"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                print("Checking ROB for {}".format(instruction.rt))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             elif instruction.op == "Div.d":
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
 
             self.num_filled_stations += 1
-        else:
-            return Warning("Warning! Reservation stations full! Did not insert instruction")
 
     def deliver(self):
         """ Deliver the result to the CDB and remove it from the buffer
@@ -267,23 +265,23 @@ class FPAdder:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add.d":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction["op"], "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
-                print("Checking ROB for {}".format(instruction["rt"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                print("Checking ROB for {}".format(instruction.rt))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
 
             elif instruction.op == "Sub.d":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction["op"], "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
-                print("Checking ROB for {}".format(instruction["rt"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                print("Checking ROB for {}".format(instruction.rt))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.num_filled_stations += 1
 
         if self.num_filled_stations == self.size:
-            print("FP Adder {} is full!".format(self.fu_number))
+            print("FP Adder {} is now full!".format(self.fu_number))
         return self.num_filled_stations == self.size
 
     def deliver(self):
@@ -389,23 +387,23 @@ class IntegerAdder:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction["op"], "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
-                print("Checking ROB for {}".format(instruction["rt"]))
-                self.reservation_stations[tag]["vj"] = self.rob.request(instruction["rt"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                print("Checking ROB for {}".format(instruction.rt))
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Sub":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction["op"], "qk":instruction["rs"], "qj":instruction["rt"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
-                print("Checking ROB for {}".format(instruction["rt"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                print("Checking ROB for {}".format(instruction.rt))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             elif instruction.op == "Addi":
                 # Addi: Rd = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, op:instruction["op"], "qk":instruction["rs"], "vk":instruction["imm"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction["rd"]}
-                print("Checking ROB for {}".format(instruction["rs"]))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction["rs"])
+                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "vk":instruction["imm"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.num_filled_stations += 1
 
         if self.num_filled_stations == self.size:
@@ -494,8 +492,10 @@ class IntegerAdder:
         return output_string
 
 class ROB:
-    def __init__(self, num_rob_entries):
+    def __init__(self, num_rob_entries, int_arf, fp_arf):
         self.num_entries = num_rob_entries
+        self.fp_arf = fp_arf
+        self.int_arf = int_arf
         self.rob = [0] * num_rob_entries
         for i in range(num_rob_entries):
             self.rob[i] = {"tag":"ROB{}".format(i+1),"type":None, "dest":None, "value":None, "finished":False}
@@ -563,19 +563,19 @@ class ROB:
                         print("Ready to commit {} from ROB to ARF_FP and ARF_INT. **** TODO **** Don't forget to dequeue() and wipe result from RAT!".format(entry))
                         self.commit(bus_data["dest"])
     
-    def register_arfs(self, fp_arf, int_arf):
-        self.fp_arf = fp_arf
-        self.int_arf = int_arf
-
     def commit(self, register_name):
         entry_index = self.rob.index(register_name)
         if self.rob[entry_index]["finished"] and self.rob[entry_index]["type"] not in ["Sd", "Ld"]:
             if "F" in self.rob[entry_index]["dest"]:
                 print("Committing {} - {} to FP ARF".format(register_name, value))
                 self.fp_arf[register_name] = value
+                # Dequeue
+
             elif "R" in self.rob[entry_index]["dest"]:
                 print("Committing {} - {} to INT ARF".format(register_name, value))
                 self.int_arf[register_name] = value
+                # Dequeue
+
     
     def mem_commit(self, register_name):
         if self.rob[register_name]["type"] in ["Sd", "Ld"]:
@@ -643,12 +643,13 @@ if __name__ == "__main__":
     int_arf = {"R{}".format(i):0 for i in range(1,33)}
     fp_arf = {"F{}".format(i):0.0 for i in range(1,33)}
 
-    rob = ROB(4)
-    rob.register_arfs(fp_arf, int_arf)
-    
+    # Initialize ROB and provide it with the ARFs
+    rob = ROB(4, fp_arf, int_arf)
+    print(rob)
     rob.enqueue({"type":"Add.d", "dest":"R1"})
     print(rob)
     rob.enqueue({"type":"Sub.d", "dest":"R2"})
     print(rob)
     rob_output = rob.dequeue() # This contains the ROB entry tag to be purged from the RAT
     print(rob)
+    print(rob_output)

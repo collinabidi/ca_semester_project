@@ -1,4 +1,14 @@
-# Main driver and heartbeat code
+import argparse
+from functional_units import *
+from memory import *
+from RAT import *
+from reading_input import input_parser
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--input", type=str)
+    return parser.parse_args()
 
 class Processor:
     def __init__(self, config_file, verbose=False):
@@ -35,5 +45,10 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
+    args = parse_args()
+    filename = args.input
+    output_filename = args.input.split(".")[0] + "_output.txt"
+    verbose = args.verbose
+
     my_processor = Processor()
     my_processor.run_code()
