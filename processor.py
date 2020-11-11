@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import argparse
 from functional_units import *
 from memory import *
@@ -9,15 +10,34 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--input", type=str)
     return parser.parse_args()
+=======
+# Main driver and heartbeat code
+from RAT import RegisterAliasTable
+from cdb import CommonDataBus
+from functional_units import *
+from memory import *
+
+>>>>>>> Stashed changes
 
 class Processor:
     def __init__(self, config_file, verbose=False):
         self.cycle_count = 0
-        # initialize all components here
-        # 1. Get input data from config file
 
-        # 2. Initialize every component with references to the other components
-        return
+        # initialize all components here
+        self.RAT = RegisterAliasTable()
+        self.ROB = None
+        self.BTB = None
+
+        self.op_units = [LoadStoreQueue("mem_size", "q_len", "cyc_mem"),
+                        "FP_Addr",
+                        "FP_Mult",
+                        "IntAddr..."]
+
+        cdb_subs = [self.BTB, self.ROB]
+        for opr in self.op_units:
+            cdb_subs.append(opr)
+
+        self.CDB = CommonDataBus(self.op_units, self.cdb_subs)
 
 
     def run_code():
