@@ -1,43 +1,50 @@
-<<<<<<< Updated upstream
-import argparse
-from functional_units import *
-from memory import *
-from RAT import *
-from reading_input import input_parser
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--input", type=str)
-    return parser.parse_args()
-=======
 # Main driver and heartbeat code
 from RAT import RegisterAliasTable
 from cdb import CommonDataBus
 from functional_units import *
 from memory import *
+from reading_input import input_parser
 
->>>>>>> Stashed changes
 
 class Processor:
     def __init__(self, config_file, verbose=False):
+
+        initr = input_parser(config_file)
         self.cycle_count = 0
 
         # initialize all components here
-        self.RAT = RegisterAliasTable()
-        self.ROB = None
-        self.BTB = None
+        self.instr_buf = InstructionBuffer(config_file)
+        self.reg_alias_tbl = RegisterAliasTable()
+        self.reorder_buf = ROB(initr.ROBe, 32, 32) # HARD CODE? Are num registers param'd?
+        self.brnch_trnsl_buf = BTB()
 
-        self.op_units = [LoadStoreQueue("mem_size", "q_len", "cyc_mem"),
-                        "FP_Addr",
-                        "FP_Mult",
-                        "IntAddr..."]
+        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, config=self.memory),
+                           FPAdder(intir.FPA["nrg"], initr.FPA["cie"], intir.FPA["nfu"]),
+                           FPMultiplier(initr.FPM["nrg"], initr.FPM["cie"], initr.FPM["nfu"]),
+                           IntegerAdder(initr.IntA["nrg"], initr.IntA["cie"], initr.IntA["nfu"]) ]
 
         cdb_subs = [self.BTB, self.ROB]
-        for opr in self.op_units:
+        for opr in self.func_units:
             cdb_subs.append(opr)
 
         self.CDB = CommonDataBus(self.op_units, self.cdb_subs)
+
+        # finish references to all components still needing it.
+        # ==========REGISTER ALIAS TABLE============
+        self.reg_alias_tbl.instr_queue = self.instr_buf
+        self.reg_alias_tbl.func_units["LSQ"] = self.func_units[0]
+        self.reg_alias_tbl.func_units["FPA"] = self.func_units[1]
+        self.reg_alias_tbl.func_units["FPM"] = self.func_units[2]
+        self.reg_alias_tbl.func_units["INT"] = self.func_units[3]
+        self.reg_alias_tbl.func_units["INT"] = self.brnch_trnsl_buf
+
+        # ==========BRANCH TRANSLATION BUFFER=========
+
+        # ========== REORDER BUFFER =============
+        # self.reg_alias = self.reg_alias_tbl
+
+    def sys_print(self, out_file=None):
+        return
 
 
     def run_code():
@@ -65,10 +72,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    args = parse_args()
-    filename = args.input
-    output_filename = args.input.split(".")[0] + "_output.txt"
-    verbose = args.verbose
-
     my_processor = Processor()
-    my_processor.run_code()
+    #my_processor.run_code()
