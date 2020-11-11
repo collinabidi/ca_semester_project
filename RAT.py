@@ -185,7 +185,7 @@ for instruction in instruction_buffer:
 
 
 class RegisterAliasTable:
-    def __init__(self):
+    def __init__(self, register_qty=32):
         self.rat_map = {}  # Map of ARF registers to ARF/ROB registers
         self.routing_tbl = {} # Map of instructions to func_units
         self.actv_instruction = None # instruction being worked on or stalled
@@ -193,6 +193,8 @@ class RegisterAliasTable:
         self.instr_queue = None      # reference to Instruction Buffer
         self.rob = None              # reference to Reorder Buffer
         self.func_units = {}         # reference to func units
+
+        self.__init_registers__(register_qty)
 
 
     def tick(self):
@@ -256,7 +258,7 @@ class RegisterAliasTable:
             return instr_raw
 
 
-    def __init_registers__(self):
+    def __init_registers__(self, num_arf):
         self.routing_tbl = {"Beq":"INT", "Bne":"INT", "Addi":"FPA", \
                             "Ld":"LSQ",  "Sd":"LSQ",  "Add.d":"FPA", \
                             "Add":"INT", "Sub":"INT", "Sub.d":"FPA", \
@@ -270,7 +272,7 @@ class RegisterAliasTable:
                            "BTB":None}
 
         """However we want to define the ARF registers"""
-        for i range(32):
+        for i range(num_arf):
             self.rat_map["R"+str(i)] = "R"+str(i)
             self.rat_map["F"+str(i)] = "F"+str(i)
 

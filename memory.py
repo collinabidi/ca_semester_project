@@ -16,8 +16,7 @@
         relevant to a store operation
 
     The LSQ implements:
-    - .deliver()/result_buffer[] so it may be a source for the CDB
-
+    - .deliver()/result_buffer[] so it may be a source
 
     Core Memory Block
     - Block is parameterizable in the following ways:
@@ -44,7 +43,7 @@ class LoadStoreQueue:
         self.result_buffer = []
         self.mem_unit = Memory(mem_size, word_len=wl, mem_config=config, verbose=verbose)
         #component ref params
-        self.reorder_buffer = rob
+        self.register_pickup = rob.register_director
 
     def issue(self, instr):
         if self.num_stats_free == 0:
@@ -58,8 +57,8 @@ class LoadStoreQueue:
         if enqueue["op"] == "Ld":
             enqueue["commit"] = True
 
-        enqueue["vrs"] = self.reorder_buffer.request(enqueue["qrs"])
-        enqueue["vrt"] = self.reorder_buffer.request(enqueue["qrt"])
+        enqueue["vrs"] = self.register_pickup.request(enqueue["qrs"])
+        enqueue["vrt"] = self.register_pickup.request(enqueue["qrt"])
 
         self.num_stats_free -= 1
         self.queue_stations.append(enqueue)
