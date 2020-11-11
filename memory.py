@@ -16,8 +16,7 @@
         relevant to a store operation
 
     The LSQ implements:
-    - .deliver()/result_buffer[] so it may be a source for the CDB
-
+    - .deliver()/result_buffer[] so it may be a source
 
     Core Memory Block
     - Block is parameterizable in the following ways:
@@ -33,7 +32,7 @@ from functional_units import *
 
 
 class LoadStoreQueue:
-    def __init__(self, mem_size, queue_len, cycles_in_mem, rob, verbose=False, config=None, wl=4):
+    def __init__(self, mem_size, queue_len, cycles_in_mem, rob, CBDe, verbose=False, config=None, wl=4):
         # hardware params
         self.verbose = verbose
         self.num_stats_free = queue_len
@@ -42,6 +41,7 @@ class LoadStoreQueue:
         #sub-component params
         self.queue_stations = [] * queue_len
         self.result_buffer = []
+        self.CDBe = CDBe
         self.mem_unit = Memory(mem_size, word_len=wl, mem_config=config, verbose=verbose)
         #component ref params
         self.reorder_buffer = rob
@@ -72,15 +72,8 @@ class LoadStoreQueue:
             return
 
         queue_leader = self.queue_stations[0]
-        if lsq_entry_ready(queue_leader) and len(self.result_buffer) == 0:
+        if lsq_entry_ready(queue_leader) and len(self.result_buffer) < self.CDBe:
             # register is ready to go to mem. & not waiting to tender a result
-            """
-            WE SHOULDNT NEED TO CHECK FOR VALUES HERE
-                ROB is read on "issue" of new instr. to queue
-                Arch. Registers are also read on "issue" and no values have to wait.
-                CBD will automatically push values to us (and the rob, but we already have them)
-                We checked all sources in due time, so no need to repeat.
-            """
             queue_leader["countdown"] -= 1
             if (queue_leader["countdown"]) == 0:
                 # calc effective addres
@@ -91,7 +84,8 @@ class LoadStoreQueue:
                 # ready output for system if "Ld"
                 if queue_leader["op"] == "Ld":
                     queue_leader["vrs"] = res
-                    result = {"dest":queue_leader["qrs"], "value":res}
+                    result = {"op":"Ld", "pc":None,
+                              "dest":queue_leader["qrs"], "value":res}
                     self.result_buffer.append(result)
 
                 # dequeue the operation
@@ -106,9 +100,10 @@ class LoadStoreQueue:
     # THIS NEEDS TO BE CALLED BY THE ROB WHEN IT COMMITS A VALUE
     #   If the value was tied to a store operation, that operation will dequeue
     def mem_commit(self, rob_loc):
-        if self.queue_stations[0]["op"] == "Sd":
-            if rob_loc == self.queue_stations[0]["qrs"]:
-                self.queue_stations[0]["commit"] = True
+        for stat in self.queue_stations:
+        if stat["op"] == "Sd":
+            if rob_loc == stat["qrs"]:
+                stat["commit"] = True
 
 
     def read_cdb(self, bus_data):
@@ -233,7 +228,16 @@ class Memory:
 
 
     # prints current contents of memory
-    def __str__(self, width=4):
+    def __str__(self):
+        output = "===Current Memory Configuration===\n"
+        for idex in range(len(self.memory)):
+            if self.memory[idex] != 0:
+                addr = idex * self.word_len
+                output += "MEM[" + str(addr) + "]="+str(self.memory[idex])+"\t"
+        output += "================================="
+        return output
+
+"""    def __str__(self, width=4):
         item_sz = int(self.mem_sz / self.word_len)
         mod_blck = item_sz - (item_sz % width)
         remainder = item_sz % width
@@ -255,7 +259,7 @@ class Memory:
             rem_mem_line += "\t" + str(self.memory[mod_blck+i])
         if remainder != 0:
             output += rem_mem_line + "\n"
-        return output
+        return output"""
 
 
 
