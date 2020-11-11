@@ -35,16 +35,16 @@ class Processor:
         # finish references to all components still needing it.
         # ==========REGISTER ALIAS TABLE============
         self.reg_alias_tbl.instr_queue = self.instr_buf
+        self.reg_alias_tbl.rob = self.reorder_buf
         self.reg_alias_tbl.func_units["LSQ"] = self.func_units[0]
         self.reg_alias_tbl.func_units["FPA"] = self.func_units[1]
         self.reg_alias_tbl.func_units["FPM"] = self.func_units[2]
         self.reg_alias_tbl.func_units["INT"] = self.func_units[3]
-        self.reg_alias_tbl.func_units["INT"] = self.brnch_trnsl_buf
-
-        # ==========BRANCH TRANSLATION BUFFER=========
+        self.reg_alias_tbl.func_units["BTB"] = self.brnch_trnsl_buf
 
         # ========== REORDER BUFFER =============
-        # self.reg_alias = self.reg_alias_tbl
+        # self.reorder_buf.rat = self.reg_alias_tbl
+        # self.reorder_buf.lsu = self.func_unit[0]
 
     def sys_print(self, out_file=None):
         return
@@ -54,7 +54,6 @@ class Processor:
         # run the heartbeat loop
         while("Instruction buffer and ROB are not empty"):
             cycle_count += 1
-            #InstructionBuffer.tick() //Fetch decode?
             #RAT.tick()
             #BTB.tick()
 

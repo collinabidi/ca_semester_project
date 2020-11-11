@@ -197,7 +197,7 @@ class FPMultiplier:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
-    
+
     def read_cdb(self, bus_data):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
@@ -451,7 +451,7 @@ class IntegerAdder:
         self.num_filled_stations = sum([1 for key,val in self.reservation_stations.items() if val["busy"] == True])
         self.executing = False
         self.current_tag = None
-    
+
     def read_cdb(self, bus_data):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
@@ -491,21 +491,21 @@ class ROB:
         self.front = -1
         self.rear = -1
 
-    def __str__(self): 
+    def __str__(self):
         output_string = "===================ROB====================\n"
         output_string += "Reg.\tType\tDest\tValue\tFinished\n"
         output_string += "------------------------------------------\n"
-        if (self.rear >= self.front):  
-            for i in range(self.front, self.rear + 1): 
-                output_string += str(self.rob[i]) + "\n"  
-        else: 
-            for i in range(self.front, self.num_entries): 
+        if (self.rear >= self.front):
+            for i in range(self.front, self.rear + 1):
                 output_string += str(self.rob[i]) + "\n"
-            for i in range(0, self.rear + 1): 
+        else:
+            for i in range(self.front, self.num_entries):
+                output_string += str(self.rob[i]) + "\n"
+            for i in range(0, self.rear + 1):
                 output_string += str(self.rob[i]) + "\n"
         output_string += "==========================================\n"
-        if ((self.rear + 1) % self.num_entries == self.front): 
-            print("ROB is Full") 
+        if ((self.rear + 1) % self.num_entries == self.front):
+            print("ROB is Full")
         return output_string
 
     def tick(self):
@@ -536,7 +536,7 @@ class ROB:
             entry["tag"] = "ROB{}".format(self.rear+1)
             self.rob[self.rear] = entry
         return self.rob[self.rear]["tag"]
-    
+
     def dequeue(self):
         """ Remove an entry to the ROB, returns the popped entry as {"type": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
         """
@@ -619,7 +619,7 @@ class BTB:
         self.fp_adders = fp_adders
         self.fp_multipliers = fp_multipliers
 
-    def __str__(self): 
+    def __str__(self):
         output_string = "========= BTB ============\n"
         output_string += "Entry\tTaken\tIn Use\n"
         output_string += "------------------------\n"
@@ -630,7 +630,7 @@ class BTB:
             output_string += "\n"
         output_string += "=========================\n"
         return output_string
-    
+
     def issue(self, instruction, current_pc):
         """ Function to issue instruction to the BTB. Will return value of predicted PC
         """
@@ -665,7 +665,7 @@ class BTB:
                 return current_pc + 4
 
     def tick(self):
-        """ Will execute 
+        """ Will execute
         """
         if self.correct is False:
             print("***MISPREDICTION*** Stall a cycle")
@@ -687,7 +687,7 @@ class BTB:
             self.rt = None
             self.rs = None
             self.branch_entry = -1
-        
+
 
     def read_cdb(self, data_bus):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value, "type":Type of Instruction}
