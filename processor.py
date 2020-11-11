@@ -15,19 +15,22 @@ class Processor:
         # initialize all components here
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
-        self.reorder_buf = ROB(initr.ROBe, 32, 32) # HARD CODE? Are num registers param'd?
-        self.brnch_trnsl_buf = BTB()
+        self.reorder_buf = ROB(int(initr.ROBe), 32, 32) # HARD CODE? Are num registers param'd?
 
-        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, config=self.memory),
-                           FPAdder(intir.FPA["nrg"], initr.FPA["cie"], intir.FPA["nfu"]),
-                           FPMultiplier(initr.FPM["nrg"], initr.FPM["cie"], initr.FPM["nfu"]),
-                           IntegerAdder(initr.IntA["nrg"], initr.IntA["cie"], initr.IntA["nfu"]) ]
+        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
+                           FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
+                           FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), int(initr.FPM["nfu"]), self.reorder_buf),
+                           IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), int(initr.intA["nfu"]), self.reorder_buf) ]
 
-        cdb_subs = [self.BTB, self.ROB]
+        self.brnch_trnsl_buf = BTB(self.reorder_buf, self.reg_alias_tbl,
+                                   self.func_units[3], self.func_units[1],
+                                   self.func_units[2])
+
+        cdb_subs = [self.brnch_trnsl_buf, self.reorder_buf]
         for opr in self.func_units:
             cdb_subs.append(opr)
 
-        self.CDB = CommonDataBus(self.op_units, self.cdb_subs)
+        self.CDB = CommonDataBus(self.func_units, cdb_subs)
 
         # finish references to all components still needing it.
         # ==========REGISTER ALIAS TABLE============
@@ -72,5 +75,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor()
+    my_processor = Processor("test_files\\test1.txt")
     #my_processor.run_code()
