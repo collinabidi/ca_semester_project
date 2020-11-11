@@ -3,7 +3,7 @@ import sys
 from reading_input import *
 
 class Instruction():
-    """ Basic class for the Instruction objects
+    """ Basic class for the Instruction objects. Args formatted as [string op, string rs, string rt, string rd]
     """
     def __init__(self, *args):
 
@@ -32,7 +32,7 @@ class Instruction():
             self.rd = args[1].strip(",")
             self.string = ""
             for arg in args:
-                self.string += arg + " "
+                self.string += str(arg) + " "
         # I-type instruction
         # args should be formatted as:
         #   [string op, string rs, string rt, string address_immediate]
@@ -42,27 +42,23 @@ class Instruction():
             self.type = "i"
             self.op = args[0]
             self.rs = args[1]
-            if args[0] in ["Bne", "Bne", "Addi"]:
-                self.rt = args[2].strip(",")
+            if args[0] in ["Bne", "Beq"]:
+                self.rs = args[2].strip(",")
+                self.rt = args[3].strip(",")
                 self.addr_imm = args[3].strip(",")
             elif args[0] in ["Ld","Sd"]:
                 self.rd = args[2].split("(")[1].strip(")")
                 self.addr_imm = float(args[2].split("(")[0])
+            elif args[0] in ["Addi"]:
+                self.rt = args[2].strip(",")
+                self.rs = args[3].strip(",")
+                self.addr_imm = args[3].strip(",")
+
             self.string = ""
             for arg in args:
-                self.string += arg + " "
-        # J-type instruction
-        # args should be formatted as:
-        #   [string op, string immediate]
-        elif args[0] in ["Jump"]:
-            self.type = "j"
-            self.op = args[0]
-            self.target_address = args[1]
-            self.string = ""
-            for arg in args:
-                self.string += arg + " "
+                self.string += str(arg) + " "
         else:
-            self.type = "NOP"
+            self.op = "NOP"
             self.string = ""
             for arg in args:
                 self.string += " {}".format(arg)
@@ -92,6 +88,7 @@ class InstructionBuffer:
         self.PC += 1
         # If we reach the end of the instructions, return a NOP
         if pc == len(self.instruction_list):
+            print("NO MORE INSTRUCTIONS!")
             return Instruction()
         return self.instruction_list[pc]
 
@@ -116,7 +113,7 @@ class FPMultiplier:
     """ The FPMultiplier class encapsulates all functionality of the parameterizable hardware Floating Point Multipler.
     """
 
-    def __init__(self, num_reservations_stations, cycles_in_ex, fu_number):
+    def __init__(self, num_reservations_stations, cycles_in_ex, fu_number, rob):
         """ Initialization function for the FPMultiplier to specify parameters.
         """
         self.reservation_stations = {}
@@ -132,6 +129,9 @@ class FPMultiplier:
 
         # This reserves a copy of our reservation station in case we need to backtrack
         self.history = []
+
+        # Register the rob to make requests
+        self.rob = rob
 
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
@@ -222,24 +222,10 @@ class FPMultiplier:
 
 class FPAdder:
     """ The FPAdder class encapsulates all functionality of the parameterizable hardware Floating Point Adder.
-
-    Attributes:
-        reservation_stations ({}): dict of stations that can be filled with instructions, cleared, marked busy, etc.
-        cycles_in_ex (int): number of cycles that it takes to execute an instruction (one at a time)
-        countdown (int): current cycle number that the FPAdder is on while executing an instruction
-        busy (boolean): denotes the status of the FPAdder
-        num_filled_stations (int): number of instructions currently occupying the reservation stations
-        complete (boolean): flag to indicate that the FPAdder is done
-        result (int): value that comes out of the operation
     """
 
-    def __init__(self, num_reservations_stations, cycles_in_ex, fu_number):
+    def __init__(self, num_reservations_stations, cycles_in_ex, fu_number, rob):
         """ Initialization function for the FPAdder to specify parameters.
-
-        Args:
-            num_reservation_stations (int): count of how many reservations stations there will be
-            cycles_in_ex (int): count of how many cycles it takes for the FPAdder to execute an instruction
-            fu_number (int): index of this functional unit
         """
         self.reservation_stations = {}
         self.fu_number = fu_number
@@ -254,6 +240,9 @@ class FPAdder:
 
         # This reserves a copy of our reservation station in case we need to backtrack
         self.history = []
+
+        # Register the rob to make requests
+        self.rob = rob
 
     def issue(self, instruction):
         """ Function to insert an instruction into the reservation station
@@ -519,12 +508,24 @@ class ROB:
             print("ROB is Full") 
         return output_string
 
+    def tick(self):
+        # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
+        if self.rob[self.front]["finished"] == True:
+            if entry["type"] == "Ld" or entry["type"] == "Sd":
+                print("Load/Store instruction ready to commit {} to load/store queue".format(entry))
+                self.mem_commit(bus_data["dest"])
+                self.dequeue()
+            else:
+                print("Ready to commit {} from ROB to ARF_FP and ARF_INT. **** TODO **** Don't forget to dequeue() and wipe result from RAT!".format(entry))
+                self.commit(bus_data["dest"])
+                self.dequeue()
 
     def enqueue(self, entry):
         """ Add an entry to the ROB, formatted as {"type": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
         """
         if ((self.rear + 1) % self.num_entries == self.front):
             print("ROB is full!")
+            return None
         elif self.front == -1:
             self.front = 0
             self.rear = 0
@@ -534,8 +535,11 @@ class ROB:
             self.rear = (self.rear + 1) % self.num_entries
             entry["tag"] = "ROB{}".format(self.rear+1)
             self.rob[self.rear] = entry
+        return self.rob[self.rear]["tag"]
     
     def dequeue(self):
+        """ Remove an entry to the ROB, returns the popped entry as {"type": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
+        """
         if self.front == -1:
             print("ROB is empty")
         elif self.front == self.rear:
@@ -555,28 +559,17 @@ class ROB:
             if entry["dest"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
-                if self.rob[self.front] == entry:
-                    if entry["type"] == "Ld" or entry["type"] == "Sd":
-                        print("Load/Store instruction ready to commit {} to load/store queue".format(entry))
-                        self.mem_commit(bus_data["dest"])
-                    else:
-                        print("Ready to commit {} from ROB to ARF_FP and ARF_INT. **** TODO **** Don't forget to dequeue() and wipe result from RAT!".format(entry))
-                        self.commit(bus_data["dest"])
-    
+
     def commit(self, register_name):
         entry_index = self.rob.index(register_name)
         if self.rob[entry_index]["finished"] and self.rob[entry_index]["type"] not in ["Sd", "Ld"]:
             if "F" in self.rob[entry_index]["dest"]:
                 print("Committing {} - {} to FP ARF".format(register_name, value))
                 self.fp_arf[register_name] = value
-                # Dequeue
-
             elif "R" in self.rob[entry_index]["dest"]:
                 print("Committing {} - {} to INT ARF".format(register_name, value))
                 self.int_arf[register_name] = value
-                # Dequeue
 
-    
     def mem_commit(self, register_name):
         if self.rob[register_name]["type"] in ["Sd", "Ld"]:
             print("Mem Committing {} - {} to Load/Store Queue")
@@ -598,44 +591,137 @@ class ROB:
             print("Requesting {} from the FP ARF".format(register_name))
             return self.fp_arf[register_name]
 
+    def save_state(self):
+        """ Saves a copy of the rob. Needs to be called when a branch instruction is issued from instruction buffer
+        """
+        self.history = self.rob.copy()
+        self.front_copy = self.front
+        self.rear_copy = self.rear
+
+    def rewind(self):
+        """ Resets the rob back to the instruction before the branch occurred
+        """
+        self.rob = self.history.copy()
+        self.front = self.front_copy
+        self.rear = self.rear
+
 class BTB:
-    def __init__(self):
+    def __init__(self, rob, rat, int_adders, fp_adders, fp_multipliers):
         self.entries = {i:False for i in range(8)}
         self.branch_pc = 0
-        self.branch_address = 0
+        self.branch_entry = -1
+        self.correct = None
+
+        # Register any unit that needs to have save_state() or rewind() called
+        self.rob = rob
+        self.rat = rat
+        self.int_adders = int_adders
+        self.fp_adders = fp_adders
+        self.fp_multipliers = fp_multipliers
+
+    def __str__(self): 
+        output_string = "========= BTB ============\n"
+        output_string += "Entry\tTaken\tIn Use\n"
+        output_string += "------------------------\n"
+        for entry, taken in self.entries.items():
+            output_string += "{}\t{}".format(entry, taken)
+            if self.branch_entry == entry:
+                output_string += "\tYES"
+            output_string += "\n"
+        output_string += "=========================\n"
+        return output_string
     
-    def issue(self, address, current_pc, offset):
-        """ Function to insert an instruction into the reservation station
+    def issue(self, instruction, current_pc):
+        """ Function to issue instruction to the BTB. Will return value of predicted PC
         """
-        if address < 0 or address > 8:
-            raise SegFaultException(" Out-of-Bounds BTB Address: {} is not in range (0,7)".format(address))
+        if instruction.op not in ["Bne", "Beq"]:
+            raise Warning("This is not a Branch instruction!")
         else:
-            if self.entries[address] == True:
+            # Issue save_state() to all relevant units
+            self.rob.save_state()
+            self.rat.save_state()
+            for int_adder in self.int_adders:
+                int_adder.save_state()
+            for fp_adder in self.fp_adders:
+                fp_adder.save_state()
+            for fp_multiplier in self.fp_multipliers:
+                fp_multiplier.save_state()
+            self.rs = instruction.rs
+            self.rt = instruction.rt
+            self.predicted_offset = int(instruction.addr_imm)
+            self.branch_entry = current_pc % 8
+            # Make prediction and return predicted PC
+            if self.entries[current_pc % 8] == True:
                 print("Predict TAKEN")
                 self.branch_pc = current_pc
-                self.branch_address = address
-                new_pc = current_pc + 4 + offset * 4
+                self.prediction = True
+                new_pc = current_pc + 4 + self.predicted_offset * 4
                 print("Old PC: {}\tNew PC: {}".format(current_pc, new_pc))
                 return new_pc
             else:
                 print("Predict NOT TAKEN")
+                self.prediction = False
                 self.branch_pc = current_pc
                 return current_pc + 4
-    
-    def update(self):
-        """ Flip Taken/Not Taken in relevant entry if misprediction occurs
+
+    def tick(self):
+        """ Will execute 
         """
-        print("Correcting misprediction and returning address of instruction after mispredicted branch")
-        self.entries[self.branch_address] = not self.entries[self.branch_address]
-        return self.branch_pc + 4
+        if self.correct is False:
+            print("***MISPREDICTION*** Stall a cycle")
+            self.correct = None
+            self.branch_entry = -1
+
+            # Call rewind on all relevant units
+            self.rob.rewind()
+            self.rat.rewind()
+            for int_adder in self.int_adders:
+                int_adder.rewind()
+            for fp_adder in self.fp_adders:
+                fp_adder.rewind()
+            for fp_multiplier in self.fp_multipliers:
+                fp_multiplier.rewind()
+        elif self.correct is True:
+            print("Reset values")
+            # Reset all values if prediction is good
+            self.correct = None
+            self.rt = None
+            self.rs = None
+            self.branch_entry = -1
+        
 
     def read_cdb(self, data_bus):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value, "type":Type of Instruction}
         """
-        if self.entries[entry] != value:
-            print("*MISPREDICTION* Stall a cycle to 1) Recover RAT 2) Reset Reservation Stations 3) Clear ROB entries past branch instruction")
-        else:
-            self.entries[entry] = value
+        if data_bus["type"] == "Beq":
+            if self.prediction and data_bus["value"] == 0:
+                # Good prediction
+                print("Good prediction")
+                self.correct = True
+            else:
+                # Bad prediction
+                print("Bad prediction")
+                self.correct = False
+                self.entries[self.branch_entry] = not self.entries[self.branch_entry]
+
+        elif data_bus["type"] == "Bne":
+            if self.prediction and data_bus["value"] != 0:
+                # Good prediction
+                self.correct = True
+            else:
+                # Bad prediction
+                self.correct = False
+                self.entries[self.branch_entry] = not self.entries[self.branch_entry]
+
+
+# Bad RAT to just test stuff
+class RAT:
+    def __init__(self):
+        self.ree = 0
+    def rewind(self):
+        return True
+    def save_state(self):
+        return True
 
 # This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":
@@ -643,13 +729,46 @@ if __name__ == "__main__":
     int_arf = {"R{}".format(i):0 for i in range(1,33)}
     fp_arf = {"F{}".format(i):0.0 for i in range(1,33)}
 
-    # Initialize ROB and provide it with the ARFs
-    rob = ROB(4, fp_arf, int_arf)
-    print(rob)
-    rob.enqueue({"type":"Add.d", "dest":"R1"})
-    print(rob)
-    rob.enqueue({"type":"Sub.d", "dest":"R2"})
-    print(rob)
-    rob_output = rob.dequeue() # This contains the ROB entry tag to be purged from the RAT
-    print(rob)
-    print(rob_output)
+    # Initialize BTB and provide it with the relevant FUs
+    rob = ROB(4, int_arf, fp_arf)
+    int_adders = [IntegerAdder(2, 2, i, rob) for i in range(2)]
+    fp_adders = [FPAdder(2, 2, i, rob) for i in range(2)]
+    fp_multipliers = [FPMultiplier(2, 2, i, rob) for i in range(2)]
+    rat = RAT()
+    btb = BTB(rob, rat, int_adders, fp_adders, fp_multipliers)
+
+    # Tick BTB
+    current_pc = 0
+    print(btb)
+    btb.tick()
+    print(btb)
+    current_pc += 1
+
+    # Issue instruction to BTB
+    sample_branch = Instruction(["Beq", "R1", "R2", "3"])
+    print("Instruction: {}".format(sample_branch))
+    btb.issue(sample_branch, current_pc)
+    print(btb)
+    btb.tick()
+    print(btb)
+    current_pc += 1
+
+    btb.tick()
+    print(btb)
+    current_pc += 1
+
+    # BTB gets result from CDB that IS NOT what it's looking for
+    btb.read_cdb({"dest":"R1", "value":10,"type":"Addi"})
+    btb.tick()
+    print(btb)
+    current_pc += 1
+
+    # BTB gets result from CDB that IS what it's looking for
+    btb.read_cdb({"dest":"R1", "value":0,"type":"Beq"})
+    btb.tick()
+    print(btb)
+    current_pc += 1
+
+    btb.tick()
+    print(btb)
+    current_pc += 1
