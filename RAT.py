@@ -1,5 +1,4 @@
 from functional_units import *
-from readingInput import input_parser
 
 
 class RegisterAliasTable:

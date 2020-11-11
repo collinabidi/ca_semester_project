@@ -32,17 +32,17 @@ from functional_units import *
 
 
 class LoadStoreQueue:
-    def __init__(self, mem_size, queue_len, cycles_in_mem, rob, CBDe, verbose=False, config=None, wl=4):
+    def __init__(self, mem_size, queue_len, cycles_in_mem, rob, CDBe, verbose=False, config=None, wl=4):
         # hardware params
         self.verbose = verbose
-        self.num_stats_free = queue_len
-        self.queue_sz = queue_len
-        self.cycles_in_mem = cycles_in_mem
+        self.num_stats_free = int(queue_len)
+        self.queue_sz = int(queue_len)
+        self.cycles_in_mem = int(cycles_in_mem)
         #sub-component params
-        self.queue_stations = [] * queue_len
+        self.queue_stations = [] * int(queue_len)
         self.result_buffer = []
-        self.CDBe = CDBe
-        self.mem_unit = Memory(mem_size, word_len=wl, mem_config=config, verbose=verbose)
+        self.CDBe = int(CDBe)
+        self.mem_unit = Memory(int(mem_size), word_len=wl, mem_config=config, verbose=verbose)
         #component ref params
         self.reorder_buffer = rob
 
@@ -101,9 +101,9 @@ class LoadStoreQueue:
     #   If the value was tied to a store operation, that operation will dequeue
     def mem_commit(self, rob_loc):
         for stat in self.queue_stations:
-        if stat["op"] == "Sd":
-            if rob_loc == stat["qrs"]:
-                stat["commit"] = True
+            if stat["op"] == "Sd":
+                if rob_loc == stat["qrs"]:
+                    stat["commit"] = True
 
 
     def read_cdb(self, bus_data):
@@ -189,7 +189,7 @@ class Memory:
         else:
             print("with config")
             if len(mem_arr) != (self.mem_sz * self.word_len):
-                self.mem_sz = len(mem_sz) * self.word_len
+                self.mem_sz = len(mem_arr) * self.word_len
                 if self.verbose:
                     print("[MEMRY]: Inputted Mem config did not expected size. " +\
                           "Size Param changed.")
