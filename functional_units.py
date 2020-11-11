@@ -490,6 +490,8 @@ class ROB:
             self.rob[i] = {"tag":"ROB{}".format(i+1),"type":None, "dest":None, "value":None, "finished":False}
         self.front = -1
         self.rear = -1
+        self.LSQ = None
+        self.RAT = None
 
     def __str__(self): 
         output_string = "===================ROB====================\n"
@@ -512,11 +514,9 @@ class ROB:
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         if self.rob[self.front]["finished"] == True:
             if entry["type"] == "Ld" or entry["type"] == "Sd":
-                print("Load/Store instruction ready to commit {} to load/store queue".format(entry))
                 self.mem_commit(bus_data["dest"])
                 self.dequeue()
             else:
-                print("Ready to commit {} from ROB to ARF_FP and ARF_INT. **** TODO **** Don't forget to dequeue() and wipe result from RAT!".format(entry))
                 self.commit(bus_data["dest"])
                 self.dequeue()
 
@@ -569,11 +569,14 @@ class ROB:
             elif "R" in self.rob[entry_index]["dest"]:
                 print("Committing {} - {} to INT ARF".format(register_name, value))
                 self.int_arf[register_name] = value
+            self.RAT.commit_update(self.rob[entry_index]["tag"])
 
     def mem_commit(self, register_name):
         if self.rob[register_name]["type"] in ["Sd", "Ld"]:
-            print("Mem Committing {} - {} to Load/Store Queue")
-            # TODO
+            entry_index = self.rob.index(register_name)
+            self.LSQ.mem_commit(self.rob[entry_index]["tag"])
+            print("Mem Committing {} to Load/Store Queue".format(self.rob[entry_index]["tag"]))
+            
 
     def request(self, register_name):
         if "ROB" in register_name:
@@ -712,16 +715,6 @@ class BTB:
                 self.correct = False
                 self.entries[self.branch_entry] = not self.entries[self.branch_entry]
 
-
-# Bad RAT to just test stuff
-class RAT:
-    def __init__(self):
-        self.ree = 0
-    def rewind(self):
-        return True
-    def save_state(self):
-        return True
-
 # This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":
     # Assume 16 maximum registers for the integer and floating_point register files
@@ -729,11 +722,19 @@ if __name__ == "__main__":
     fp_arf = {"F{}".format(i):0.0 for i in range(1,33)}
 
     # Initialize BTB and provide it with the relevant FUs
+    # Bad RAT to just test stuff
+    class RAT:
+        def __init__(self):
+            self.ree = 0
+        def rewind(self):
+            return True
+        def save_state(self):
+            return True
+    rat = RAT()
     rob = ROB(4, int_arf, fp_arf)
     int_adders = [IntegerAdder(2, 2, i, rob) for i in range(2)]
     fp_adders = [FPAdder(2, 2, i, rob) for i in range(2)]
     fp_multipliers = [FPMultiplier(2, 2, i, rob) for i in range(2)]
-    rat = RAT()
     btb = BTB(rob, rat, int_adders, fp_adders, fp_multipliers)
 
     # Tick BTB
