@@ -16,7 +16,7 @@
         relevant to a store operation
 
     The LSQ implements:
-    - .deliver()/result_buffer[] so it may be a source
+    - .deliver()/results_buffer[] so it may be a source
 
     Core Memory Block
     - Block is parameterizable in the following ways:
@@ -40,23 +40,23 @@ class LoadStoreQueue:
         self.cycles_in_mem = int(cycles_in_mem)
         #sub-component params
         self.queue_stations = [] * int(queue_len)
-        self.result_buffer = []
+        self.results_buffer = []
+        self.rb_history = []
+        self.lsq_history = []
         self.CDBe = int(CDBe)
         self.mem_unit = Memory(int(mem_size), word_len=wl, mem_config=config, verbose=verbose)
         #component ref params
         self.reorder_buffer = rob
 
+
     def issue(self, instr):
         if self.num_stats_free == 0:
             return Warning("Warning! Queue is unable to accept instruction.")
 
-        #
-        enqueue = {"op":instr["op"], "qrs":instr["rs"], "qrt":instr["rt"], \
-                   "vrs":None, "vrt":None, "imm":instr["imm"], \
-                   "countdown":self.cycles_in_mem, "commit":commit_check(instr["rs"])}
-
-        if enqueue["op"] == "Ld":
-            enqueue["commit"] = True
+        # create new queue entry with default value
+        enqueue = {"op":instr.op, "qrs":instr.rs, "qrt":instr.rt, \
+                   "vrs":None, "vrt":None, "imm":instr.addr_imm, \
+                   "countdown":self.cycles_in_mem, "commit":commit_check(instr)}
 
         enqueue["vrs"] = self.reorder_buffer.request(enqueue["qrs"])
         enqueue["vrt"] = self.reorder_buffer.request(enqueue["qrt"])
@@ -72,7 +72,7 @@ class LoadStoreQueue:
             return
 
         queue_leader = self.queue_stations[0]
-        if lsq_entry_ready(queue_leader) and len(self.result_buffer) and (len(self.result_buffer) < self.CDBe):
+        if lsq_entry_ready(queue_leader) and(len(self.results_buffer) < self.CDBe):
             # register is ready to go to mem. & not waiting to tender a result
             queue_leader["countdown"] -= 1
             if (queue_leader["countdown"]) == 0:
@@ -86,7 +86,7 @@ class LoadStoreQueue:
                     queue_leader["vrs"] = res
                     result = {"op":"Ld", "pc":None,
                               "dest":queue_leader["qrs"], "value":res}
-                    self.result_buffer.append(result)
+                    self.results_buffer.append(result)
 
                 # dequeue the operation
                 self.num_stats_free += 1
@@ -94,7 +94,7 @@ class LoadStoreQueue:
 
 
     def deliver(self):
-        return self.result_buffer.pop(0)
+        return self.results_buffer.pop(0)
 
 
     # THIS NEEDS TO BE CALLED BY THE ROB WHEN IT COMMITS A VALUE
@@ -121,14 +121,18 @@ class LoadStoreQueue:
     # clear held values
     def reset(self, mem_reset=False):
         self.queue_stations = []
-        self.result_buffer = []
+        self.results_buffer = []
         if mem_reset:
             self.mem_unit.reset()
 
+    def save_state(self):
+        self.rb_history = self.results_buffer.copy()
+        self.lsq_histroy = self.queue_stations.copy()
 
     # branch prediction rollback
     def rewind(self):
         return
+
 
     def __str__(self):
         out_str= "======================== Load/Store Queue [Sz: "+str(self.queue_sz)+"] =============================\n"
@@ -143,13 +147,17 @@ class LoadStoreQueue:
                        str(stat["imm"]) + "\n"
 
         out_str += "---------------------------------------------------------------------------\n"
-        out_str += "Results Buffer: {}".format(self.result_buffer)
+        out_str += "Results Buffer: {}".format(self.results_buffer)
         return out_str
+
+
 
 # stand alone rule about store commit rules
 def commit_check(register):
     # we only avoid default commit if we are waiting on the action from the ROB
-    if "ROB" in register:
+    if register.op == "Ld":
+        return True
+    if "ROB" in register.rs:
         return False
     return True
 
@@ -244,7 +252,8 @@ class Memory:
         output += "================================="
         return output
 
-"""    def __str__(self, width=4):
+""" Prints out the full memory unit contents
+    def __str__(self, width=4):
         item_sz = int(self.mem_sz / self.word_len)
         mod_blck = item_sz - (item_sz % width)
         remainder = item_sz % width
@@ -266,7 +275,8 @@ class Memory:
             rem_mem_line += "\t" + str(self.memory[mod_blck+i])
         if remainder != 0:
             output += rem_mem_line + "\n"
-        return output"""
+        return output
+"""
 
 
 
