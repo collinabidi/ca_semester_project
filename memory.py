@@ -53,7 +53,7 @@ class LoadStoreQueue:
         #
         enqueue = {"op":instr["op"], "qrs":instr["rs"], "qrt":instr["rt"], \
                    "vrs":None, "vrt":None, "imm":instr["imm"], \
-                   "countdown":self.cycles_in_mem, "commit":False}
+                   "countdown":self.cycles_in_mem, "commit":commit_check(instr["rs"])}
 
         if enqueue["op"] == "Ld":
             enqueue["commit"] = True
@@ -145,6 +145,13 @@ class LoadStoreQueue:
         out_str += "---------------------------------------------------------------------------\n"
         out_str += "Results Buffer: {}".format(self.result_buffer)
         return out_str
+
+# stand alone rule about store commit rules
+def commit_check(register):
+    # we only avoid default commit if we are waiting on the action from the ROB
+    if "ROB" in register:
+        return False
+    return True
 
 
 # stand alone rule about LSQ entry readiness

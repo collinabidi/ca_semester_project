@@ -6,12 +6,23 @@ from memory import *
 from reading_input import input_parser
 
 
+# STAND ALONE SYSTEM PRINT & I/O FUNCTIONS
+# These two just print for the moment but they let us pipe to a file etc
+def sys_print(cycle, out_file=None):
+    return
+
+def sys_msg(message):
+    print(message)
+    return
+
+
+
 class Processor:
     def __init__(self, config_file, verbose=False):
 
         initr = input_parser(config_file)
         self.cycle_count = 0
-
+        self.verbose = verbose
         # initialize all components here
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
@@ -32,6 +43,9 @@ class Processor:
 
         self.CDB = CommonDataBus(self.func_units, cdb_subs)
 
+        if verbose:
+            sys_msg("[PROC] Processor fully init'd")
+
         # finish references to all components still needing it.
         # ==========REGISTER ALIAS TABLE============
         self.reg_alias_tbl.instr_queue = self.instr_buf
@@ -43,36 +57,44 @@ class Processor:
         self.reg_alias_tbl.func_units["BTB"] = self.brnch_trnsl_buf
 
         # ========== REORDER BUFFER =============
-        # self.reorder_buf.rat = self.reg_alias_tbl
-        # self.reorder_buf.lsu = self.func_unit[0]
-
-    def sys_print(self, out_file=None):
-        return
+        self.reorder_buf.rat = self.reg_alias_tbl
+        self.reorder_buf.lsu = self.func_units[0]
 
 
-    def run_code():
+
+    def run_code(self, bp=False):
         # run the heartbeat loop
-        while("Instruction buffer and ROB are not empty"):
-            cycle_count += 1
-            #RAT.tick()
-            #BTB.tick()
+        if self.verbose:
+            sys_msg(self.instr_buf)
 
-            #fpmult.tick()
-            #intaddr.tick()
-            #fpaddr.tick()
-            #lsq.tick()
+        while(1):
+            # fetch/deocde/issue
+            self.cycle_count += 1
+            self.reg_alias_tbl.tick()
+            self.brnch_trnsl_buf.tick()
 
-            #cdb.tick()
+            # execute
+            for unit in self.func_units:
+                unit.tick()
+
+            # writeback
+            self.CDB.tick()
             """ If the BTB mispredicted, the rewind can be triggered here internally
                 cdb->btb.read_cdb()->btb.component_ref.rewind()
             """
-
-            #ROB.tick()
+            # commit
+            self.reorder_buf.tick()
 
             #print system state
+            self.sys_print()
+
+            if bp is True:
+                print("Cycle: " + str(self.cycle_count))
+                input("Break Pointing... Press Enter to step")
+
 
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files\\test1.txt")
-    #my_processor.run_code()
+    my_processor = Processor("test_files\\test1.txt", verbose=True)
+    my_processor.run_code(bp=True)
