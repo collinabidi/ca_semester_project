@@ -584,6 +584,7 @@ class ROB:
             entry_index = self.rob.index(register_name)
             if self.rob[entry_index]["value"] == None:
                 print("{} has no result, returning None".format(register_name))
+                return None
             else:
                 print("{} has value {}".format(register_name, self.rob[entry_index]["value"]))
                 return self.rob[entry_index]["value"]
