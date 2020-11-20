@@ -40,24 +40,21 @@ class RegisterAliasTable:
 
             if next_pc is None:
                 hazard_flag = True
-                work_instruction = Instruction()  # Issue Nop
+                work_instruction = Instruction(["NOP"])  # Issue Nop
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
                 self.actv_instruction = work_instruction
 
         # translate ISA registers into actual registers (decode)
-        print("Work Instruction: {}".format(work_instruction))
         transformation = self.__translate__(work_instruction)
-        print("Transformed Instruction: {}".format(transformation))
 
         # check for resource dependancy (ROB full)
         if transformation is None:
             hazard_flag = True
-            transformation = Instruction() # ROB structural hazard, issue NOP
+            transformation = Instruction(["NOP"]) # ROB structural hazard, issue NOP
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
-        print("Targeting Functional Unit: {}".format(transformation.op))
         push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
