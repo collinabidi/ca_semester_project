@@ -11,64 +11,55 @@ class Instruction():
         Args:
             Depends upon whether R-type, I-type, J-type, or no-op
         """
-
-        # R-type instruction
-        # args should be formatted as:
-        #   [string op, string rs, string rt,, string rd, string shamt, string funct]
-
-        ### uncomment for debugging each argument in buffer
-        #print("ARG0: {}".format(args[0]))
-        args = args[0] #  the instruction queue
-        #print("*********************************")
-        #print(args)
-        #print("*********************************")
-        if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
-            ### uncomment when debugging
-            # print("R TYPE INSTRUCTION")
-            self.type = "r"
-            self.op = args[0]
-            self.rd = args[1].strip(",")
-            self.rs = args[2].strip(",")
-            self.rt = args[3].strip(",")
-            self.string = ""
-            for arg in args:
-                self.string += str(arg) + " "
-        # I-type instruction
-        # args should be formatted as:
-        #   [string op, string rs, string rt, string address_immediate]
-        elif args[0] in ["Beq", "Bne", "Ld", "Sd"]:
-            self.type = "i"
-            self.op = args[0]
-            self.rs = args[1]
-            if args[0] in ["Bne", "Beq"]:
+        # NOOP
+        if args[0] == "NOP":
+            self.op = "NOP"
+            self.string = "NOP"
+        else:
+            # R-type instruction
+            # args should be formatted as:
+            # [string op, string rs, string rt,, string rd, string shamt, string funct]
+            args = args[0] #  the instruction queue
+            if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
+                self.type = "r"
+                self.op = args[0]
+                self.rd = args[1].strip(",")
                 self.rs = args[2].strip(",")
                 self.rt = args[3].strip(",")
+                self.string = ""
+                for arg in args:
+                    self.string += str(arg) + " "
+            # I-type instruction
+            # args should be formatted as:
+            #   [string op, string rs, string rt, string address_immediate]
+            elif args[0] in ["Beq", "Bne", "Ld", "Sd"]:
+                self.type = "i"
+                self.op = args[0]
+                self.rs = args[1]
+                if args[0] in ["Bne", "Beq"]:
+                    self.rs = args[2].strip(",")
+                    self.rt = args[3].strip(",")
+                    self.addr_imm = args[3].strip(",")
+                elif args[0] in ["Ld","Sd"]:
+                    self.rd = args[2].split("(")[1].strip(")")
+                    self.addr_imm = float(args[2].split("(")[0])
+                elif args[0] in ["Addi"]:
+                    self.rt = args[2].strip(",")
+                    self.rs = args[3].strip(",")
+                    self.addr_imm = args[3].strip(",")
+                self.string = ""
+                for arg in args:
+                    self.string += str(arg) + " "
+            # Addi instruction only
+            elif args[0] == "Addi":
+                self.type = "i"
+                self.op = args[0] 
+                self.rt = args[1].strip(",")
+                self.rs = args[2].strip(",")
                 self.addr_imm = args[3].strip(",")
-            elif args[0] in ["Ld","Sd"]:
-                self.rd = args[2].split("(")[1].strip(")")
-                self.addr_imm = float(args[2].split("(")[0])
-            elif args[0] in ["Addi"]:
-                self.rt = args[2].strip(",")
-                self.rs = args[3].strip(",")
-                self.addr_imm = args[3].strip(",")
-
-            self.string = ""
-            for arg in args:
-                self.string += str(arg) + " "
-        elif args[0] == "Addi":
-            self.type = "i"
-            self.op = args[0]
-            self.rt = args[1].strip(",")
-            self.rs = args[2].strip(",")
-            self.addr_imm = args[3].strip(",")
-            self.string = ""
-            for arg in args:
-                self.string += str(arg) + " "
-        else:
-            self.op = "NOP"
-            self.string = ""
-            for arg in args:
-                self.string += " {}".format(arg)
+                self.string = ""
+                for arg in args:
+                    self.string += str(arg) + " "
 
     def __str__(self):
         return self.string
@@ -76,7 +67,7 @@ class Instruction():
 class InstructionBuffer:
     """ The InstructionBuffer class is a list of the instructions of a program.
     """
-    def __init__(self, filename, wi=4):
+    def __init__(self, filename):
         # open text_file
         readInput = open(filename, "r")
         f = readInput.readlines()
@@ -86,24 +77,19 @@ class InstructionBuffer:
         for i, inst in enumerate(unparsed_instructions):
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
-        self.instr_width = wi
 
     def fetch(self, pc):
         """ Get the next instruction from the buffer
-            -- could throw a SegFaultException if alignment fails
-            -- could throw a SegFaultException if bounds check fails
         """
         # If we reach the end of the instructions, return a NOP
-        eff_addr = int(pc / self.instr_width)
-        if eff_addr == len(self.instruction_list):
+        if pc == len(self.instruction_list):
             print("NO MORE INSTRUCTIONS!")
-            return Instruction()
-        return self.instruction_list[eff_addr]
+            return Instruction(["NOP"])
+        return self.instruction_list[pc % 4]
 
 
     def __str__(self):
         output_string = "================================\n"
-        output_string += "Instuction width: " + str(self.instr_width) + " bytes\n"
         output_string += "Index\t|\tInstruction\t\n"
         for i, instruction in enumerate(self.instruction_list):
             output_string += str(str(i) + "\t|\t" + str(self.instruction_list[i]) + "\n")
@@ -154,13 +140,13 @@ class FPMultiplier:
             tag = free_stations[0]
             # Add Rd, Rs, Rt
             if instruction.op == "Mult.d":
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             elif instruction.op == "Div.d":
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
 
@@ -261,24 +247,24 @@ class FPAdder:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add.d":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rs)
 
             elif instruction.op == "Sub.d":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rs)
             self.num_filled_stations += 1
 
-        if self.num_filled_stations == self.size:
+        if self.num_filled_stations == len(self.reservation_stations):
             print("FP Adder {} is now full!".format(self.fu_number))
-        return self.num_filled_stations == self.size
+        return self.num_filled_stations == len(self.reservation_stations)
 
     def deliver(self):
         return self.result_buffer.pop(0)
@@ -287,6 +273,7 @@ class FPAdder:
         """ Go forward once cycle and perform calculations. Add a waiting instruction to be executed. If a station is done, put result on output buffer
         """
         # Let ready instructions operate
+        new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
             if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] != 0 and new_instruction_began != True:
                 instruction["countdown"] -= 1
@@ -481,7 +468,7 @@ class IntegerAdder:
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t| \t" + str(value["qj"]))
-            output_string += "    |  " + str(value["qk"]) + "    |    " + str(value["value"]) + "\n"
+            output_string += "    |    " + str(value["qk"]) + "    |    " + str(value["value"]) + "\n"
         output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}\nReady Instruction Queue: {}".format(self.result_buffer, self.ready_queue)
         output_string += "\n==================================================================================================================================\n"
@@ -635,15 +622,15 @@ class BTB:
         self.fp_multipliers = fp_multipliers
 
     def __str__(self):
-        output_string = "========= BTB ============\n"
+        output_string = "========= BTB ==========\n"
         output_string += "Entry\tTaken\tIn Use\n"
-        output_string += "------------------------\n"
+        output_string += "-----------------------\n"
         for entry, taken in self.entries.items():
             output_string += "{}\t{}".format(entry, taken)
             if self.branch_entry == entry:
                 output_string += "\tYES"
             output_string += "\n"
-        output_string += "=========================\n"
+        output_string += "========================\n"
         return output_string
 
     def fetch_pc(self):
@@ -705,6 +692,9 @@ class BTB:
             self.rt = None
             self.rs = None
             self.branch_entry = -1
+        else:
+            self.new_pc = self.new_pc + 4
+
 
 
     def read_cdb(self, data_bus):
