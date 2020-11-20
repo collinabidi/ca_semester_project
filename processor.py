@@ -26,7 +26,7 @@ class Processor:
         # initialize all components here
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
-        self.reorder_buf = ROB(int(initr.ROBe), 32, 32) # HARD CODE? Are num registers param'd?
+        self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # HARD CODE? Are num registers param'd?
 
         self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
                            FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
@@ -73,9 +73,14 @@ class Processor:
             self.reg_alias_tbl.tick()
             self.brnch_trnsl_buf.tick()
 
+            print(self.reg_alias_tbl)
+            print(self.brnch_trnsl_buf)
+
+            # issue instruction to proper reservation station
+
+
             # execute
             for unit in self.func_units:
-                print(unit)
                 unit.tick()
                 print(unit)
 
@@ -99,5 +104,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test1.txt", verbose=True)
+    my_processor = Processor("test_files/test1a.txt", verbose=True)
     my_processor.run_code(bp=True)

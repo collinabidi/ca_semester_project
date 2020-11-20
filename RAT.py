@@ -46,7 +46,9 @@ class RegisterAliasTable:
                 self.actv_instruction = work_instruction
 
         # translate ISA registers into actual registers (decode)
+        print("Work Instruction: {}".format(work_instruction))
         transformation = self.__translate__(work_instruction)
+        print("Transformed Instruction: {}".format(transformation))
 
         # check for resource dependancy (ROB full)
         if transformation is None:
@@ -55,6 +57,7 @@ class RegisterAliasTable:
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
+        print("Targeting Functional Unit: {}".format(transformation.op))
         push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
@@ -83,9 +86,13 @@ class RegisterAliasTable:
         if instr_raw.type not in ["r", "i"]:
             return instr_raw
 
-        rob_dict = {"type":instr_raw.op, "dest":instr_raw.rs}
-        if instr_raw.type == "i":
+        # Some instructions store result to rd, others store to rt
+        if instr_raw.op in ["Add","Add.d","Sub","Sub.d","Mult.d"]:
+            rob_dict = {"type":instr_raw.op, "dest":instr_raw.rd}
+        else:
+            rob_dict = {"type":instr_raw.op, "dest":instr_raw.rs}
 
+        if instr_raw.type == "i":
             if instr_raw.op in ["Bne", "Beq"]:
                 rs = self.rat_map[instr_raw.rs]
             else:
@@ -97,17 +104,17 @@ class RegisterAliasTable:
             rt = self.rat_map[instr_raw.rt]
             addr_imm = instr_raw.addr_imm
 
-            return Instruction(instr_raw.op, rs, rt, addr_imm)
+            return Instruction([instr_raw.op, rs, rt, addr_imm])
 
         elif instr_raw.type == "r":
-            rs = self.rob.enqueue(rob_dict)
-            if rs is None:
+            rd = self.rob.enqueue(rob_dict)
+            if rd is None:
                 return None
-            self.rat_map[instr_raw.rs] = rs
+            self.rat_map[instr_raw.rd] = rd
 
             rt = self.rat_map[instr_raw.rt]
-            rd = self.rat_map[instr_raw.rd]
-            return Instruction(instr_raw.op, rd, rs, rt)
+            rs = self.rat_map[instr_raw.rs]
+            return Instruction([instr_raw.op, rd, rs, rt])
 
 
 

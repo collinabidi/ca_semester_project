@@ -19,26 +19,24 @@ class Instruction():
         ### uncomment for debugging each argument in buffer
         #print("ARG0: {}".format(args[0]))
         args = args[0] #  the instruction queue
-        print("*********************************")
-        print(args)
-        print("*********************************")
+        #print("*********************************")
+        #print(args)
+        #print("*********************************")
         if args[0] in ["Add.d", "Add", "Sub", "Sub.d", "Mult.d"]:
             ### uncomment when debugging
             # print("R TYPE INSTRUCTION")
             self.type = "r"
             self.op = args[0]
+            self.rd = args[1].strip(",")
             self.rs = args[2].strip(",")
             self.rt = args[3].strip(",")
-            self.rd = args[1].strip(",")
             self.string = ""
             for arg in args:
                 self.string += str(arg) + " "
         # I-type instruction
         # args should be formatted as:
         #   [string op, string rs, string rt, string address_immediate]
-        elif args[0] in ["Beq", "Bne", "Addi", "Ld", "Sd"]:
-            ### uncomment when debugging
-            # print("I TYPE INSTRUCTION")
+        elif args[0] in ["Beq", "Bne", "Ld", "Sd"]:
             self.type = "i"
             self.op = args[0]
             self.rs = args[1]
@@ -54,6 +52,15 @@ class Instruction():
                 self.rs = args[3].strip(",")
                 self.addr_imm = args[3].strip(",")
 
+            self.string = ""
+            for arg in args:
+                self.string += str(arg) + " "
+        elif args[0] == "Addi":
+            self.type = "i"
+            self.op = args[0] 
+            self.rt = args[1].strip(",")
+            self.rs = args[2].strip(",")
+            self.addr_imm = args[3].strip(",")
             self.string = ""
             for arg in args:
                 self.string += str(arg) + " "
@@ -204,12 +211,12 @@ class FPMultiplier:
 
     def __str__(self):
         output_string = "===================================================FP Multiply Unit=================================================================================\n"
-        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk       Countdown     Dest\n"
+        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj     |    qk    |    Countdown   |   Destination\n"
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
-                "\t|\t" + str(value["qk"]) + "         " + str(value["countdown"]) + "      " + str(value["dest"]) + "\n")
+                "    |   " + str(value["qk"]) + "  |       " + str(value["countdown"]) + "      |   " + str(value["dest"]) + "\n")
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
         output_string += "\n=================================================================================================================================================\n"
@@ -319,12 +326,12 @@ class FPAdder:
 
     def __str__(self):
         output_string = "===================================================FP Adder Unit=================================================================================\n"
-        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk\t|\tvalue\t|\tCountdown\n"
+        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj      |    qk      |     value     |     Countdown\n"
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
-                "\t|\t" + str(value["qk"]) + "\t|\t" + str(value["value"]) + "\t|\t" + str(value["countdown"]) + "\n")
+                "    |    " + str(value["qk"]) + "     |     " + str(value["value"]) + "     |     " + str(value["countdown"]) + "\n")
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
         output_string += "\n=================================================================================================================================================\n"
@@ -371,21 +378,21 @@ class IntegerAdder:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Sub":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             elif instruction.op == "Addi":
                 # Addi: Rd = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, op:instruction.op, "qk":instruction.rs, "vk":instruction["imm"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "vk":instruction["imm"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.num_filled_stations += 1
@@ -464,12 +471,12 @@ class IntegerAdder:
         else:
             output_string = "===================================================Integer Adder: Idle======================================================\n"
 
-        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj\t|\tqk\t|\tvalue\n"
+        output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj      |    qk    |     value\n"
         output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
-                "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
-                "\t|\t" + str(value["qk"]) + "\t|\t" + str(value["value"]) + "\n")
+                "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t| \t" + str(value["qj"]))
+            output_string += "    |  " + str(value["qk"]) + "    |    " + str(value["value"]) + "\n"
         output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}\nReady Instruction Queue: {}".format(self.result_buffer, self.ready_queue)
         output_string += "\n==================================================================================================================================\n"
@@ -478,8 +485,8 @@ class IntegerAdder:
 class ROB:
     def __init__(self, num_rob_entries, int_arf, fp_arf):
         self.num_entries = num_rob_entries
-        self.fp_arf = fp_arf
-        self.int_arf = int_arf
+        self.int_arf = {"R{}".format(i):0 for i in range(1,int_arf)}
+        self.fp_arf = {"F{}".format(i):0.0 for i in range(1,fp_arf)}
         self.rob = [0] * num_rob_entries
         for i in range(num_rob_entries):
             self.rob[i] = {"tag":"ROB{}".format(i+1),"type":None, "dest":None, "value":None, "finished":False}

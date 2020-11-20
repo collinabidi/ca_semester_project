@@ -202,7 +202,7 @@ class Memory:
                 print("[MEMRY]: Init'd clean memory. # Words: " + str(len(self.memory)))
 
         else:
-            print("with config")
+            #print("with config")
             if len(mem_arr) != (self.mem_sz * self.word_len):
                 self.mem_sz = len(mem_arr) * self.word_len
                 if self.verbose:
