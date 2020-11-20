@@ -511,7 +511,7 @@ class ROB:
 
     def tick(self):
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
-        print("ROB Instruction in the front: {}".format(self.rob[self.front]))
+        #print("ROB Instruction in the front: {}".format(self.rob[self.front]))
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
             if entry["op"] == "Ld" or entry["op"] == "Sd":
@@ -562,23 +562,23 @@ class ROB:
             if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
+                print("!WB {}".format(entry))
 
 
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
             if "F" in entry["dest"]:
-                #print("Committing {} - {} to FP ARF".format(entry["dest"], entry["value"]))
+                print("!COMMIT {}".format(entry))
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
-                #print("Committing {} - {} to INT ARF".format(entry["dest"], entry["value"]))
+                print("!COMMIT {}".format(entry))
                 self.int_arf[entry["dest"]] = entry["value"]
             self.RAT.commit_update(entry["tag"])
 
     def mem_commit(self, register_name):
         if entry["op"] in ["Sd", "Ld"]:
+            print("!COMMIT {}".format(entry))
             self.LSQ.mem_commit(entry["tag"])
-            #print("Mem Committing {} to Load/Store Queue".format(entry["tag"]))
-
 
     def request(self, register_name):
         if "ROB" in register_name:
