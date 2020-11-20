@@ -67,7 +67,7 @@ class Arbiter:
             self.source_states[next_up] = 0
 
         if len(self.output_q) > 0:
-            self.output_q = self.output_q.pop(0)
+            self.output_q.pop(0)
         return next_up
 
 
@@ -90,7 +90,7 @@ class CommonDataBus:
             self.bus_data = self.sources[target_fu].deliver()
 
             for sub in self.subscribers:
-                sub.read_cdb(bus_data)
+                sub.read_cdb(self.bus_data)
 
         else:
             self.bus_data = None

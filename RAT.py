@@ -2,7 +2,7 @@ from functional_units import *
 
 
 class RegisterAliasTable:
-    def __init__(self, register_qty=32):
+    def __init__(self, register_qty=16):
         self.rat_map = {}  # Map of ARF registers to ARF/ROB registers
         self.routing_tbl = {} # Map of instructions to func_units
         self.actv_instruction = None # instruction being worked on or stalled
@@ -35,14 +35,18 @@ class RegisterAliasTable:
 
         # check for active stall and fetch
         work_instruction = self.actv_instruction
+        print("Work Instruction: {}".format(work_instruction))
         if work_instruction is None:
             next_pc = self.func_units["BTB"].fetch_pc()
-
-            if next_pc is None:
+            print("Received PC = {} from BTB".format(next_pc))
+            print("Is PC beyond the end? {}".format(next_pc >= self.instr_queue.total_instructions*4))
+            if next_pc is None or next_pc >= self.instr_queue.total_instructions*4:
                 hazard_flag = True
-                work_instruction = Instruction(["NOP"])  # Issue Nop
+                work_instruction = Instruction("NOP")  # Issue Nop
+                print("issuing NOP")
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
+                print("Fetched instruction from Instruction Queue: {}".format(work_instruction))
                 self.actv_instruction = work_instruction
 
         # translate ISA registers into actual registers (decode)
@@ -51,7 +55,7 @@ class RegisterAliasTable:
         # check for resource dependancy (ROB full)
         if transformation is None:
             hazard_flag = True
-            transformation = Instruction(["NOP"]) # ROB structural hazard, issue NOP
+            transformation = Instruction("NOP") # ROB structural hazard, issue NOP
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
@@ -80,14 +84,15 @@ class RegisterAliasTable:
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
         #  then remaps registers from current table
+        print("Raw Instruction: {}".format(instr_raw))
         if instr_raw.type not in ["r", "i"]:
             return instr_raw
 
         # Some instructions store result to rd, others store to rt
         if instr_raw.op in ["Add","Add.d","Sub","Sub.d","Mult.d"]:
-            rob_dict = {"type":instr_raw.op, "dest":instr_raw.rd}
-        else:
-            rob_dict = {"type":instr_raw.op, "dest":instr_raw.rs}
+            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rd, "type":instr_raw.type}
+        elif instr_raw.op == "Addi":
+            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rt, "type":instr_raw.type}
 
         if instr_raw.type == "i":
             if instr_raw.op in ["Bne", "Beq"]:
@@ -116,7 +121,7 @@ class RegisterAliasTable:
 
 
     def __init_registers__(self, num_arf):
-        self.routing_tbl = {"Beq":"INT", "Bne":"INT", "Addi":"FPA", \
+        self.routing_tbl = {"Beq":"INT", "Bne":"INT", "Addi":"INT", \
                             "Ld":"LSQ",  "Sd":"LSQ",  "Add.d":"FPA", \
                             "Add":"INT", "Sub":"INT", "Sub.d":"FPA", \
                             "Mult.d":"FPM", "NOP":"NOP"}

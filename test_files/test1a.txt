@@ -11,4 +11,4 @@ Mem[4]=1, Mem[8]=2, Mem[10]=666
 
 Add R1, R2, R3
 Add.d F1, F2, F3
-Addi R4, R3, #4
+Addi R4, R3, 4

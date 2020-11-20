@@ -135,8 +135,8 @@ class LoadStoreQueue:
 
 
     def __str__(self):
-        out_str= "======================== Load/Store Queue [Sz: "+str(self.queue_sz)+"] =============================\n"
-        out_str+="  Op |  q_rs  |  q_rt  |  v_rs  |  v_rt  | Str.Commit | Countdown | Immidiate\n"
+        out_str= "======================== Load/Store Queue [Size: "+str(self.queue_sz)+"] =========================\n"
+        out_str+="  Op |  q_rs  |  q_rt  |  v_rs  |  v_rt  | Str.Commit | Countdown | Immediate\n"
         out_str+="-----------------------------------------------------------------------------\n"
 
         for stat in self.queue_stations:
@@ -146,7 +146,7 @@ class LoadStoreQueue:
                        "    |     " + str(stat["countdown"]) + "     |   " + \
                        str(stat["imm"]) + "\n"
 
-        out_str += "---------------------------------------------------------------------------\n"
+        out_str += "-----------------------------------------------------------------------------\n"
         out_str += "Results Buffer: {}".format(self.result_buffer)
         return out_str
 

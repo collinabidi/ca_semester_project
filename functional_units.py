@@ -12,9 +12,11 @@ class Instruction():
             Depends upon whether R-type, I-type, J-type, or no-op
         """
         # NOOP
+        self.string = ""
         if args[0] == "NOP":
             self.op = "NOP"
             self.string = "NOP"
+            self.type = "NOP"
         else:
             # R-type instruction
             # args should be formatted as:
@@ -77,15 +79,18 @@ class InstructionBuffer:
         for i, inst in enumerate(unparsed_instructions):
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
+        self.total_instructions = len(self.instruction_list)
 
     def fetch(self, pc):
         """ Get the next instruction from the buffer
         """
         # If we reach the end of the instructions, return a NOP
-        if pc == len(self.instruction_list):
+        if pc == 4*len(self.instruction_list):
             print("NO MORE INSTRUCTIONS!")
             return Instruction(["NOP"])
-        return self.instruction_list[pc % 4]
+
+        print("Get {} / 4".format(pc))
+        return self.instruction_list[int(pc / 4)]
 
 
     def __str__(self):
@@ -173,7 +178,7 @@ class FPMultiplier:
                     answer = float(self.reservation_stations[tag]["vj"]) / float(self.reservation_stations[tag]["vk"])
 
                 self.reservation_stations[tag]["value"] = answer
-                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer})
+                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
                 self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
                 self.num_filled_stations -= 1
 
@@ -201,7 +206,7 @@ class FPMultiplier:
                 station["vk"] = bus_data["value"]
 
     def __str__(self):
-        output_string = "===================================================FP Multiply Unit=================================================================================\n"
+        output_string = "===================================================FP Multiply Unit==============================================================================\n"
         output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj     |    qk    |    Countdown   |   Destination\n"
         output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
@@ -317,16 +322,16 @@ class FPAdder:
                 station["vk"] = bus_data["value"]
 
     def __str__(self):
-        output_string = "===================================================FP Adder Unit=================================================================================\n"
+        output_string = "===================================================FP Adder Unit====================================================================================\n"
         output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj      |    qk      |     value     |     Countdown\n"
-        output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
+        output_string += "----------------------------------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t|\t" + str(value["qj"]) + \
                 "    |    " + str(value["qk"]) + "     |     " + str(value["value"]) + "     |     " + str(value["countdown"]) + "\n")
-        output_string += "-------------------------------------------------------------------------------------------------------------------------------------------------\n"
+        output_string += "----------------------------------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}".format(self.result_buffer)
-        output_string += "\n=================================================================================================================================================\n"
+        output_string += "\n====================================================================================================================================================\n"
         return output_string
 
 class IntegerAdder:
@@ -384,7 +389,7 @@ class IntegerAdder:
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             elif instruction.op == "Addi":
                 # Addi: Rd = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "vk":instruction["imm"], "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"qk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.num_filled_stations += 1
@@ -464,14 +469,14 @@ class IntegerAdder:
             output_string = "===================================================Integer Adder: Idle======================================================\n"
 
         output_string += "Tag\t\t|\tBusy\t|\tOp\t|\tvj\t|\tvk\t|\tqj      |    qk    |     value\n"
-        output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
+        output_string += "----------------------------------------------------------------------------------------------------------------------------\n"
         for tag, value in self.reservation_stations.items():
             output_string += str(tag + "\t|\t" + str(value["busy"]) + "\t|\t" + str(value["op"]) + \
                 "\t|\t" + str(value["vj"]) + "\t|\t" + str(value["vk"]) + "\t| \t" + str(value["qj"]))
             output_string += "    |    " + str(value["qk"]) + "    |    " + str(value["value"]) + "\n"
-        output_string += "----------------------------------------------------------------------------------------------------------------------------------\n"
+        output_string += "----------------------------------------------------------------------------------------------------------------------------\n"
         output_string += "Result Buffer: {}\nReady Instruction Queue: {}".format(self.result_buffer, self.ready_queue)
-        output_string += "\n==================================================================================================================================\n"
+        output_string += "\n============================================================================================================================\n"
         return output_string
 
 class ROB:
@@ -481,7 +486,7 @@ class ROB:
         self.fp_arf = {"F{}".format(i):0.0 for i in range(1,fp_arf)}
         self.rob = [0] * num_rob_entries
         for i in range(num_rob_entries):
-            self.rob[i] = {"tag":"ROB{}".format(i+1),"type":None, "dest":None, "value":None, "finished":False}
+            self.rob[i] = {"tag":"ROB{}".format(i+1),"op":None, "dest":None, "value":None, "finished":False}
         self.front = -1
         self.rear = -1
         self.LSQ = None
@@ -489,7 +494,7 @@ class ROB:
 
     def __str__(self):
         output_string = "===================ROB====================\n"
-        output_string += "Reg.\tType\tDest\tValue\tFinished\n"
+        output_string += "Reg.\tOp\tDest\tValue\tFinished\n"
         output_string += "------------------------------------------\n"
         if (self.rear >= self.front):
             for i in range(self.front, self.rear + 1):
@@ -508,15 +513,16 @@ class ROB:
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         print("ROB Instruction in the front: {}".format(self.rob[self.front]))
         if self.rob[self.front]["finished"] == True:
-            if entry["type"] == "Ld" or entry["type"] == "Sd":
-                self.mem_commit(bus_data["dest"])
+            entry = self.rob[self.front]
+            if entry["op"] == "Ld" or entry["op"] == "Sd":
+                self.mem_commit(entry)
                 self.dequeue()
             else:
-                self.commit(bus_data["dest"])
+                self.commit(entry)
                 self.dequeue()
 
     def enqueue(self, entry):
-        """ Add an entry to the ROB, formatted as {"type": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
+        """ Add an entry to the ROB, formatted as {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
         """
         if ((self.rear + 1) % self.num_entries == self.front):
             print("ROB is full!")
@@ -535,7 +541,7 @@ class ROB:
         return self.rob[self.rear]["tag"]
 
     def dequeue(self):
-        """ Remove an entry to the ROB, returns the popped entry as {"type": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
+        """ Remove an entry to the ROB, returns the popped entry as {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
         """
         if self.front == -1:
             print("ROB is empty")
@@ -553,43 +559,42 @@ class ROB:
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
         for entry in self.rob:
-            if entry["dest"] == bus_data["dest"]:
+            if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
 
-    def commit(self, register_name):
-        entry_index = self.rob.index(register_name)
-        if self.rob[entry_index]["finished"] and self.rob[entry_index]["type"] not in ["Sd", "Ld"]:
-            if "F" in self.rob[entry_index]["dest"]:
-                print("Committing {} - {} to FP ARF".format(register_name, value))
-                self.fp_arf[register_name] = value
-            elif "R" in self.rob[entry_index]["dest"]:
-                print("Committing {} - {} to INT ARF".format(register_name, value))
-                self.int_arf[register_name] = value
-            self.RAT.commit_update(self.rob[entry_index]["tag"])
+
+    def commit(self, entry):
+        if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
+            if "F" in entry["dest"]:
+                #print("Committing {} - {} to FP ARF".format(entry["dest"], entry["value"]))
+                self.fp_arf[entry["dest"]] = entry["value"]
+            elif "R" in entry["dest"]:
+                #print("Committing {} - {} to INT ARF".format(entry["dest"], entry["value"]))
+                self.int_arf[entry["dest"]] = entry["value"]
+            self.RAT.commit_update(entry["tag"])
 
     def mem_commit(self, register_name):
-        if self.rob[register_name]["type"] in ["Sd", "Ld"]:
-            entry_index = self.rob.index(register_name)
-            self.LSQ.mem_commit(self.rob[entry_index]["tag"])
-            print("Mem Committing {} to Load/Store Queue".format(self.rob[entry_index]["tag"]))
+        if entry["op"] in ["Sd", "Ld"]:
+            self.LSQ.mem_commit(entry["tag"])
+            #print("Mem Committing {} to Load/Store Queue".format(entry["tag"]))
 
 
     def request(self, register_name):
         if "ROB" in register_name:
-            print("Requesting {} from the ROB registers".format(register_name))
+            #print("Requesting {} from the ROB registers".format(register_name))
             entry_index = self.rob.index(register_name)
             if self.rob[entry_index]["value"] == None:
-                print("{} has no result, returning None".format(register_name))
+                #print("{} has no result, returning None".format(register_name))
                 return None
             else:
-                print("{} has value {}".format(register_name, self.rob[entry_index]["value"]))
+                #print("{} has value {}".format(register_name, self.rob[entry_index]["value"]))
                 return self.rob[entry_index]["value"]
         elif "R" in register_name:
-            print("Requesting {} from the INT ARF".format(register_name))
+            #print("Requesting {} from the INT ARF".format(register_name))
             return self.int_arf[register_name]
         elif "F" in register_name:
-            print("Requesting {} from the FP ARF".format(register_name))
+            #print("Requesting {} from the FP ARF".format(register_name))
             return self.fp_arf[register_name]
 
     def save_state(self):
@@ -634,7 +639,10 @@ class BTB:
         return output_string
 
     def fetch_pc(self):
-        return self.new_pc
+        if self.branch_entry != -1:
+            return None
+        else:
+            return self.new_pc
 
     def issue(self, instruction, current_pc):
         """ Function to issue instruction to the BTB. Will return value of predicted PC
@@ -661,7 +669,7 @@ class BTB:
                 self.branch_pc = current_pc
                 self.prediction = True
                 new_pc = current_pc + 4 + self.predicted_offset * 4
-                print("Old PC: {}\tNew PC: {}".format(current_pc, new_pc))
+                #print("Old PC: {}\tNew PC: {}".format(current_pc, new_pc))
                 self.new_pc = new_pc
             else:
                 print("Predict NOT TAKEN")
@@ -686,39 +694,39 @@ class BTB:
             for fp_multiplier in self.fp_multipliers:
                 fp_multiplier.rewind()
         elif self.correct is True:
-            print("Reset values")
+            #print("Branch resolution: correct prediction")
             # Reset all values if prediction is good
             self.correct = None
             self.rt = None
             self.rs = None
             self.branch_entry = -1
-        else:
-            self.new_pc = self.new_pc + 4
 
-
+        if self.branch_entry == -1:
+            self.new_pc += 4
 
     def read_cdb(self, data_bus):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value, "type":Type of Instruction}
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value, "op":Type of Instruction}
         """
-        if data_bus["type"] == "Beq":
-            if self.prediction and data_bus["value"] == 0:
-                # Good prediction
-                print("Good prediction")
-                self.correct = True
-            else:
-                # Bad prediction
-                print("Bad prediction")
-                self.correct = False
-                self.entries[self.branch_entry] = not self.entries[self.branch_entry]
-
-        elif data_bus["type"] == "Bne":
-            if self.prediction and data_bus["value"] != 0:
-                # Good prediction
-                self.correct = True
-            else:
-                # Bad prediction
-                self.correct = False
-                self.entries[self.branch_entry] = not self.entries[self.branch_entry]
+        keys = list(data_bus.keys())
+        if len(data_bus) > 0 and "op" in keys:
+            if data_bus["op"] == "Beq":
+                if self.prediction and data_bus["value"] == 0:
+                    # Good prediction
+                    #print("Good prediction")
+                    self.correct = True
+                else:
+                    # Bad prediction
+                    #print("Bad prediction")
+                    self.correct = False
+                    self.entries[self.branch_entry] = not self.entries[self.branch_entry]
+            elif data_bus["op"] == "Bne":
+                if self.prediction and data_bus["value"] != 0:
+                    # Good prediction
+                    self.correct = True
+                else:
+                    # Bad prediction
+                    self.correct = False
+                    self.entries[self.branch_entry] = not self.entries[self.branch_entry]
 
 # This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":
@@ -735,6 +743,7 @@ if __name__ == "__main__":
             return True
         def save_state(self):
             return True
+            
     rat = RAT()
     rob = ROB(4, int_arf, fp_arf)
     int_adders = [IntegerAdder(2, 2, i, rob) for i in range(2)]
@@ -763,13 +772,13 @@ if __name__ == "__main__":
     current_pc += 1
 
     # BTB gets result from CDB that IS NOT what it's looking for
-    btb.read_cdb({"dest":"R1", "value":10,"type":"Addi"})
+    btb.read_cdb({"dest":"R1", "value":10,"op":"Addi"})
     btb.tick()
     print(btb)
     current_pc += 1
 
     # BTB gets result from CDB that IS what it's looking for
-    btb.read_cdb({"dest":"R1", "value":0,"type":"Beq"})
+    btb.read_cdb({"dest":"R1", "value":0,"op":"Beq"})
     btb.tick()
     print(btb)
     current_pc += 1

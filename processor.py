@@ -15,8 +15,6 @@ def sys_msg(message):
     print(message)
     return
 
-
-
 class Processor:
     def __init__(self, config_file, verbose=False):
 
@@ -26,7 +24,7 @@ class Processor:
         # initialize all components here
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
-        self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # HARD CODE? Are num registers param'd?
+        self.reorder_buf = ROB(int(initr.ROBe), 8, 8) # HARD CODE? Are num registers param'd?
 
         self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
                            FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
@@ -92,6 +90,8 @@ class Processor:
             """
             # commit
             self.reorder_buf.tick()
+
+            print(self.reorder_buf)
 
             #print system state
             sys_print(0)
