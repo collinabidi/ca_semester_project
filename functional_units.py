@@ -57,7 +57,7 @@ class Instruction():
                 self.string += str(arg) + " "
         elif args[0] == "Addi":
             self.type = "i"
-            self.op = args[0] 
+            self.op = args[0]
             self.rt = args[1].strip(",")
             self.rs = args[2].strip(",")
             self.addr_imm = args[3].strip(",")
@@ -76,7 +76,7 @@ class Instruction():
 class InstructionBuffer:
     """ The InstructionBuffer class is a list of the instructions of a program.
     """
-    def __init__(self, filename):
+    def __init__(self, filename, wi=4):
         # open text_file
         readInput = open(filename, "r")
         f = readInput.readlines()
@@ -86,19 +86,24 @@ class InstructionBuffer:
         for i, inst in enumerate(unparsed_instructions):
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
         self.index = 0
+        self.instr_width = wi
 
     def fetch(self, pc):
         """ Get the next instruction from the buffer
+            -- could throw a SegFaultException if alignment fails
+            -- could throw a SegFaultException if bounds check fails
         """
         # If we reach the end of the instructions, return a NOP
-        if pc == len(self.instruction_list):
+        eff_addr = int(pc / self.instr_width)
+        if eff_addr == len(self.instruction_list):
             print("NO MORE INSTRUCTIONS!")
             return Instruction()
-        return self.instruction_list[pc]
+        return self.instruction_list[eff_addr]
 
 
     def __str__(self):
         output_string = "================================\n"
+        output_string += "Instuction width: " + str(self.instr_width) + " bytes\n"
         output_string += "Index\t|\tInstruction\t\n"
         for i, instruction in enumerate(self.instruction_list):
             output_string += str(str(i) + "\t|\t" + str(self.instruction_list[i]) + "\n")
