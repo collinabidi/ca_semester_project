@@ -155,6 +155,7 @@ class LoadStoreQueue:
 # stand alone rule about store commit rules
 def commit_check(register):
     # we only avoid default commit if we are waiting on the action from the ROB
+    # return not (register.op == "Sd" and ("ROB" in register.rs))
     if register.op == "Ld":
         return True
     if "ROB" in register.rs:
@@ -202,8 +203,7 @@ class Memory:
                 print("[MEMRY]: Init'd clean memory. # Words: " + str(len(self.memory)))
 
         else:
-            #print("with config")
-            if len(mem_arr) != (self.mem_sz * self.word_len):
+            if len(mem_arr) != (self.mem_sz / self.word_len):
                 self.mem_sz = len(mem_arr) * self.word_len
                 if self.verbose:
                     print("[MEMRY]: Inputted Mem config did not expected size. " +\
@@ -226,7 +226,7 @@ class Memory:
         # ARRAY ACCESSES
         if io == "Ld":
             if self.verbose:
-                print("[MEMRY]: Accessed Load at EFF ADDR" + hex(byte_addr))
+                print("[MEMRY]: Accessed Load at EFF ADDR: " + hex(byte_addr))
             return self.memory[int(byte_addr / self.word_len)]
 
         elif io == "Sd":
