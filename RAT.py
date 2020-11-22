@@ -96,17 +96,24 @@ class RegisterAliasTable:
 
         if instr_raw.type == "i":
             if instr_raw.op in ["Bne", "Beq"]:
+                # Brendan please check that this is correct
                 rs = self.rat_map[instr_raw.rs]
+                self.rat_map[instr_raw.rs] = rs
+                rt = self.rat_map[instr_raw.rt]
+                addr_imm = instr_raw.addr_imm
+                return Instruction([instr_raw.op, rs, rt, addr_imm])
             else:
-                rs = self.rob.enqueue(rob_dict)
-                if rs is None:
+                # Only used for Addi
+                # Brendan please check that this is correct
+                print(self.rob)
+                rt = self.rob.enqueue(rob_dict)
+                if rt is None:
                     return None
+                self.rat_map[instr_raw.rt] = rt
+                rs = self.rat_map[instr_raw.rs]
+                addr_imm = instr_raw.addr_imm
+                return Instruction([instr_raw.op, rt, rs, addr_imm])
 
-            self.rat_map[instr_raw.rs] = rs
-            rt = self.rat_map[instr_raw.rt]
-            addr_imm = instr_raw.addr_imm
-
-            return Instruction([instr_raw.op, rs, rt, addr_imm])
 
         elif instr_raw.type == "r":
             rd = self.rob.enqueue(rob_dict)

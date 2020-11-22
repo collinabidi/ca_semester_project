@@ -35,6 +35,7 @@ class Instruction():
             # args should be formatted as:
             #   [string op, string rs, string rt, string address_immediate]
             elif args[0] in ["Beq", "Bne", "Ld", "Sd"]:
+                print("Got Beq, Bne, Ld, or Sd")
                 self.type = "i"
                 self.op = args[0]
                 self.rs = args[1]
@@ -57,7 +58,9 @@ class Instruction():
                 self.type = "i"
                 self.op = args[0] 
                 self.rt = args[1].strip(",")
+                print("Addi rt = {}".format(self.rt))
                 self.rs = args[2].strip(",")
+                print("Addi rs = {}".format(self.rs))
                 self.addr_imm = args[3].strip(",")
                 self.string = ""
                 for arg in args:
@@ -387,12 +390,7 @@ class IntegerAdder:
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Addi":
                 # Addi: Rt = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
-                print("Checking ROB for {}".format(instruction.rs))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-            elif instruction.op == "Subi":
-                # Addi: Rt = Rs - imm
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":None, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
 
@@ -585,14 +583,15 @@ class ROB:
 
     def request(self, register_name):
         if "ROB" in register_name:
-            #print("Requesting {} from the ROB registers".format(register_name))
-            entry_index = self.rob.index(register_name)
-            if self.rob[entry_index]["value"] == None:
+            print("Requesting {} from the ROB registers".format(register_name))
+            matching_entry = next((entry for entry in self.rob if entry["tag"] == register_name), None)
+            print("Entry Index for {}: {}".format(register_name, matching_entry))
+            if matching_entry == None or "value" not in matching_entry.keys():
                 #print("{} has no result, returning None".format(register_name))
                 return None
             else:
                 #print("{} has value {}".format(register_name, self.rob[entry_index]["value"]))
-                return self.rob[entry_index]["value"]
+                return matching_entry["value"]
         elif "R" in register_name:
             #print("Requesting {} from the INT ARF".format(register_name))
             return self.int_arf[register_name]
