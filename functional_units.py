@@ -145,14 +145,11 @@ class FPMultiplier:
             tag = free_stations[0]
             # Add Rd, Rs, Rt
             if instruction.op == "Mult.d":
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vk":None, "vj":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Div.d":
                 self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
 
             self.num_filled_stations += 1
@@ -167,9 +164,11 @@ class FPMultiplier:
         """
         new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
-            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] != 0 and new_instruction_began != True:
+            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == 10 and new_instruction_began != True:
                 instruction["countdown"] -= 1
                 new_instruction_began = True
+            elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < 10 and instruction["countdown"] != 0:
+                instruction["countdown"] -= 1
             elif instruction["countdown"] == 0:
                 print("{} finished!".format(tag))
                 if instruction["op"] == "Mult.d":
@@ -251,20 +250,17 @@ class FPAdder:
         else:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add.d":
-                # Add: Rd = Rs + Rt
+                # Add.d: Fd = Fs + Ft
                 self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
 
             elif instruction.op == "Sub.d":
-                # Sub: Rd = Rs - Rt
+                # Sub.d: Fd = Fs - Ft
                 self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
+                
             self.num_filled_stations += 1
 
         if self.num_filled_stations == len(self.reservation_stations):
@@ -280,9 +276,11 @@ class FPAdder:
         # Let ready instructions operate
         new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
-            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] != 0 and new_instruction_began != True:
+            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == 10 and new_instruction_began != True:
                 instruction["countdown"] -= 1
                 new_instruction_began = True
+            elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < 10 and instruction["countdown"] != 0:
+                instruction["countdown"] -= 1
             elif instruction["countdown"] == 0:
                 print("{} finished!".format(tag))
                 # Calculate value
@@ -375,23 +373,29 @@ class IntegerAdder:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
             if instruction.op == "Add":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Sub":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 print("Checking ROB for {}".format(instruction.rt))
-                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+                self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Addi":
-                # Addi: Rd = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"qk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
+                # Addi: Rt = Rs + imm
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
                 print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+            elif instruction.op == "Subi":
+                # Addi: Rt = Rs - imm
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":0, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
+                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
+
             self.num_filled_stations += 1
 
         if self.num_filled_stations == self.size:
@@ -564,7 +568,6 @@ class ROB:
                 entry["finished"] = True
                 print("!WB {}".format(entry))
 
-
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
             if "F" in entry["dest"]:
@@ -596,6 +599,18 @@ class ROB:
         elif "F" in register_name:
             #print("Requesting {} from the FP ARF".format(register_name))
             return self.fp_arf[register_name]
+
+    def register_arfs(self, int_arf, fp_arf):
+        """ Initializes the FP ARF and INT ARF values based on what comes from the input file
+        """
+        for key, value in int_arf.items():
+            #print("Registering {} - {}".format(key, value))
+            self.int_arf[key] = value
+        for key, value in fp_arf.items():
+            #print("Registering {} - {}".format(key, value))
+            self.fp_arf[key] = value
+
+        print("INT ARF: {}\nFP ARF: {}".format(self.int_arf, self.fp_arf))
 
     def save_state(self):
         """ Saves a copy of the rob. Needs to be called when a branch instruction is issued from instruction buffer
@@ -668,7 +683,7 @@ class BTB:
                 print("Predict TAKEN")
                 self.branch_pc = current_pc
                 self.prediction = True
-                new_pc = current_pc + 4 + self.predicted_offset * 4
+                new_pc = current_pc + self.predicted_offset * 4
                 #print("Old PC: {}\tNew PC: {}".format(current_pc, new_pc))
                 self.new_pc = new_pc
             else:
@@ -678,7 +693,7 @@ class BTB:
                 self.new_pc = current_pc + 4
 
     def tick(self):
-        """ Will execute
+        """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
         if self.correct is False:
             print("***MISPREDICTION*** Stall a cycle")
@@ -694,7 +709,7 @@ class BTB:
             for fp_multiplier in self.fp_multipliers:
                 fp_multiplier.rewind()
         elif self.correct is True:
-            #print("Branch resolution: correct prediction")
+            print("Branch resolution: correct prediction. PC going to {}*4 + 4".format(self.predicted_offset))
             # Reset all values if prediction is good
             self.correct = None
             self.rt = None

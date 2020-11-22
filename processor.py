@@ -18,27 +18,34 @@ def sys_msg(message):
 class Processor:
     def __init__(self, config_file, verbose=False):
 
+        # Parse input from the configuration file
         initr = input_parser(config_file)
+
+        # Initialize components
         self.cycle_count = 0
         self.verbose = verbose
-        # initialize all components here
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
-        self.reorder_buf = ROB(int(initr.ROBe), 8, 8) # HARD CODE? Are num registers param'd?
+        self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # Number of INT ARF and FP ARF currently hardcoded
+        self.reorder_buf.register_arfs(initr.ARFI, initr.ARFF)
 
+        # Register all functional units
         self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
                            FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
                            FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), int(initr.FPM["nfu"]), self.reorder_buf),
                            IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), int(initr.intA["nfu"]), self.reorder_buf) ]
 
+        # Initialize BTB
         self.brnch_trnsl_buf = BTB(self.reorder_buf, self.reg_alias_tbl,
                                    self.func_units[3], self.func_units[1],
                                    self.func_units[2])
 
+        # Specify which units subscribe to the CDB
         cdb_subs = [self.brnch_trnsl_buf, self.reorder_buf]
         for opr in self.func_units:
             cdb_subs.append(opr)
 
+        # Initialize the CDB
         self.CDB = CommonDataBus(self.func_units, cdb_subs)
 
         if verbose:
@@ -66,31 +73,24 @@ class Processor:
             sys_msg(self.instr_buf)
         
         while(1):
-            # fetch/deocde/issue
+            # FETCH/DECODE/ISSUE
             self.cycle_count += 1
             self.reg_alias_tbl.tick()
             self.brnch_trnsl_buf.tick()
 
-            print(self.reg_alias_tbl)
-            print(self.brnch_trnsl_buf)
-
-            # issue instruction to proper reservation station
-
-
-            # execute
+            # EXECUTE
             for unit in self.func_units:
                 unit.tick()
                 print(unit)
 
-
-            # writeback
+            # WRITE BACK
             self.CDB.tick()
             """ If the BTB mispredicted, the rewind can be triggered here internally
                 cdb->btb.read_cdb()->btb.component_ref.rewind()
             """
-            # commit
-            self.reorder_buf.tick()
 
+            # COMMIT
+            self.reorder_buf.tick()
             print(self.reorder_buf)
 
             #print system state
@@ -104,5 +104,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test1a.txt", verbose=True)
+    my_processor = Processor("test_files/test2a.txt", verbose=True)
     my_processor.run_code(bp=True)
