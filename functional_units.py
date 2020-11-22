@@ -634,6 +634,7 @@ class BTB:
         self.correct = None
         self.new_pc = 0
         self.predicted_offset = 0
+        self.actual_result = None
 
         # Register any unit that needs to have save_state() or rewind() called
         self.rob = rob
@@ -681,26 +682,45 @@ class BTB:
             self.predicted_offset = int(instruction.addr_imm)
             self.branch_entry = current_pc % 8
 
-            # Make prediction and return predicted PC
+            # Make prediction based on what's in the BTB entry PC
             if self.entries[current_pc % 8] == True:
-                self.branch_pc = current_pc
+                # Predict taken
+                print("PREDICT TAKEN: Saved branch pc as {}".format(self.new_pc))
+                self.branch_pc = self.new_pc
                 self.prediction = True
-                new_pc = current_pc + self.predicted_offset * 4
-                #self.new_pc = new_pc
+                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                print("Predicted PC: {}".format(self.predicted_pc))
             else:
+                # Predict not taken
+                print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
+                self.branch_pc = self.new_pc
                 self.prediction = False
-                self.branch_pc = current_pc
-                #self.new_pc = current_pc + 4
+                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                print("Predicted PC: {}".format(self.predicted_pc))
 
     def tick(self):
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
-        # Check ROB for any updates
-        if self.correct is False:
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>> BTB Correct Status: {}".format(self.correct))
+        if self.correct is None:
+            if self.branch_entry == -1:
+                print("No branch prediction in BTB, issue PC normally")
+                self.new_pc = self.new_pc + 4
+            else:
+                print("Waiting on a branch to resolve...")
+                self.new_pc = self.new_pc
+        elif self.correct is False:
             print("***MISPREDICTION*** Stall a cycle")
             self.correct = None
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
+            if self.actual_result == True:
+                print("Actually Taken")
+                self.new_pc = self.predicted_pc
+            else:
+                print("Actually Not Taken")
+                self.new_pc = self.new_pc + 4
+            self.actual_result = None
             # Call rewind on all relevant units
             """
             self.rob.rewind()
@@ -714,40 +734,47 @@ class BTB:
             """
         elif self.correct is True:
             # Reset all values if prediction is good
+            print("***Correct prediction***")
             self.correct = None
             self.rt = None
             self.rs = None
             self.branch_entry = -1
-            self.predicted_offset = 0
+            if self.actual_result == True:
+                print("Actually Taken")
+                self.new_pc = self.predicted_pc
+            else:
+                print("Actually Not Taken")
+                self.new_pc = self.new_pc + 4
+            self.actual_result = None
 
-        if self.branch_entry == -1:
-            print ("++++++++++++++++++++++++++++++++++ New PC = {} + 4 + {} * 4".format(self.new_pc, self.predicted_offset))
-            self.new_pc = self.new_pc + 4 + self.predicted_offset * 4
+        print("@@@@@@@@@@@@@@@@ BTB PC: {}".format(self.new_pc))
 
     def read_cdb(self, data_bus):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value, "op":Type of Instruction}
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as 
+        {"dest":Destination, "value":Value, "op":Type of Instruction}
         """
-        keys = list(data_bus.keys())
         print(">>>>>>>>>>>>>>>>>> BTB Read {} from data bus".format(data_bus))
-        if len(data_bus) > 0 and "op" in keys:
+        if len(data_bus) > 0 and "op" in list(data_bus.keys()) and data_bus["op"] in ["Beq","Bne"]:
             if data_bus["op"] == "Beq":
-                if self.prediction and data_bus["value"] == 0:
-                    # Good prediction
-                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Beq Good prediction")
-                    self.correct = True
+                if data_bus["value"] == 0:
+                    # Beq Taken
+                    self.actual_result = True
                 else:
-                    # Bad prediction
-                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Beq Bad prediction")
-                    self.correct = False
+                    # Beq Not Taken
+                    self.actual_result = False
             elif data_bus["op"] == "Bne":
-                if self.prediction and data_bus["value"] != 0:
-                    # Good prediction
-                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Bne Good prediction")
-                    self.correct = True
+                if data_bus["value"] != 0:
+                    # Bne Taken
+                    self.actual_result = True
                 else:
-                    # Bad prediction
-                    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Bne Bad prediction")
-                    self.correct = False
+                    # Bne Not Taken
+                    self.actual_result = False
+
+            # See if we were right
+            if self.actual_result == self.prediction:
+                self.correct = True
+            elif self.actual_result != self.prediction:
+                self.correct = False
 
 # This only runs if we call `python3 functional_units.py` from the command line
 if __name__ == "__main__":

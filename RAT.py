@@ -131,8 +131,14 @@ class RegisterAliasTable:
                 return None
             self.rat_map[instr_raw.rd] = rd
 
-            rt = self.rat_map[instr_raw.rt]
-            rs = self.rat_map[instr_raw.rs]
+            if instr_raw.rd != instr_raw.rt:
+                rt = self.rat_map[instr_raw.rt]
+            else:
+                rt = instr_raw.rt
+            if instr_raw.rd != instr_raw.rs:
+                rs = self.rat_map[instr_raw.rs]
+            else:
+                rs = instr_raw.rs
             return Instruction([instr_raw.op, rd, rs, rt])
 
 
