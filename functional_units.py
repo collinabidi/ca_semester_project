@@ -5,7 +5,7 @@ from reading_input import *
 class Instruction():
     """ Basic class for the Instruction objects. Args formatted as [string op, string rs, string rt, string rd]
     """
-    def __init__(self, *args):
+    def __init__(self, *args, pc=None):
 
         """ Initialization function for the Instruction object.
         Args:
@@ -17,6 +17,7 @@ class Instruction():
             self.op = "NOP"
             self.string = "NOP"
             self.type = "NOP"
+            self.pc = pc
         else:
             # R-type instruction
             # args should be formatted as:
@@ -28,6 +29,7 @@ class Instruction():
                 self.rd = args[1].strip(",")
                 self.rs = args[2].strip(",")
                 self.rt = args[3].strip(",")
+                self.pc = pc
                 self.string = ""
                 for arg in args:
                     self.string += str(arg) + " "
@@ -37,6 +39,7 @@ class Instruction():
             elif args[0] in ["Beq", "Bne", "Ld", "Sd"]:
                 self.type = "i"
                 self.op = args[0]
+                self.pc = pc
                 self.rs = args[1].strip(",")
                 if args[0] in ["Bne", "Beq"]:
                     self.rt = args[2].strip(",")
@@ -54,6 +57,7 @@ class Instruction():
             # Addi instruction only
             elif args[0] == "Addi":
                 self.type = "i"
+                self.pc = pc
                 self.op = args[0]
                 self.rt = args[1].strip(",")
                 print("Addi rt = {}".format(self.rt))
@@ -65,7 +69,7 @@ class Instruction():
                     self.string += str(arg) + " "
 
     def __str__(self):
-        return self.string
+        return self.string + "\tPC: {}".format(self.pc)
 
 class InstructionBuffer:
     """ The InstructionBuffer class is a list of the instructions of a program.
@@ -78,7 +82,7 @@ class InstructionBuffer:
         unparsed_instructions = f[11:]
         self.instruction_list = [0]*len(unparsed_instructions)
         for i, inst in enumerate(unparsed_instructions):
-            self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "))
+            self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "), pc=i*4)
         self.index = 0
         self.total_instructions = len(self.instruction_list)
 
