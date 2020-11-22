@@ -692,14 +692,14 @@ class BTB:
                 print("PREDICT TAKEN: Saved branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = True
-                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                self.predicted_pc = self.new_pc + self.predicted_offset * 4
                 print("Predicted PC: {}".format(self.predicted_pc))
             else:
                 # Predict not taken
                 print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = False
-                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                self.predicted_pc = self.new_pc + self.predicted_offset * 4
                 print("Predicted PC: {}".format(self.predicted_pc))
 
     def tick(self):
@@ -720,10 +720,10 @@ class BTB:
             self.branch_entry = -1
             if self.actual_result == True:
                 print("Actually Taken")
-                self.new_pc = self.predicted_pc
+                self.new_pc = self.predicted_pc - 4
             else:
                 print("Actually Not Taken")
-                self.new_pc = self.new_pc + 4
+                self.new_pc = self.new_pc
             self.actual_result = None
             # Call rewind on all relevant units
             """
@@ -745,10 +745,10 @@ class BTB:
             self.branch_entry = -1
             if self.actual_result == True:
                 print("Actually Taken")
-                self.new_pc = self.predicted_pc
+                self.new_pc = self.predicted_pc - 4
             else:
                 print("Actually Not Taken")
-                self.new_pc = self.new_pc + 4
+                self.new_pc = self.new_pc
             self.actual_result = None
 
         print("@@@@@@@@@@@@@@@@ BTB PC: {}".format(self.new_pc))
