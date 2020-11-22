@@ -122,6 +122,7 @@ class FPMultiplier:
         self.fu_number = fu_number
         self.cycles_in_ex = cycles_in_ex
         self.num_filled_stations = 0
+        self.size = num_reservations_stations
         for i in range(num_reservations_stations):
             tag = "FPMULT_{}_{}".format(str(fu_number), str(i))
             self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
@@ -139,19 +140,19 @@ class FPMultiplier:
         """ Function to insert an instruction into the reservation station
         """
         # Check if there's enough room in the reservation stations
-        if self.num_filled_stations >= len(self.reservation_stations):
+        if self.num_filled_stations >= self.size:
+            print("!!!!!!!!!!!!!!!!!!!!FP MULTIPLIER FULL")
             return Warning("Reservation Station of FPMultiplier {} is full".format(self.fu_number))
         else:
             # Generate tag and fill station
             free_stations = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False]
-            if free_stations == []:
-                print("No free reservation stations!")
             tag = free_stations[0]
             self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vk":None, "vj":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
             self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
-
             self.num_filled_stations += 1
+            if self.num_filled_stations == self.size:
+                print("FP Multiplier {} is now full!".format(self.fu_number))
 
     def deliver(self):
         """ Deliver the result to the CDB and remove it from the buffer
@@ -224,6 +225,7 @@ class FPAdder:
         self.fu_number = fu_number
         self.cycles_in_ex = cycles_in_ex
         self.num_filled_stations = 0
+        self.size = num_reservations_stations
         for i in range(num_reservations_stations):
             tag = "FPADD_{}_{}".format(str(fu_number), str(i))
             self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
@@ -241,7 +243,8 @@ class FPAdder:
         """ Function to insert an instruction into the reservation station
         """
         # Check if there's enough room in the reservation stations
-        if self.num_filled_stations >= len(self.reservation_stations):
+        if self.num_filled_stations >= self.size:
+            print("!!!!!!!!!!!!!!!!!!!!FP ADDER FULL")            
             return Warning("Reservation Station of FPAdder {} is full".format(self.fu_number))
         else:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
@@ -259,9 +262,8 @@ class FPAdder:
 
             self.num_filled_stations += 1
 
-        if self.num_filled_stations == len(self.reservation_stations):
+        if self.num_filled_stations == self.size:
             print("FP Adder {} is now full!".format(self.fu_number))
-        return self.num_filled_stations == len(self.reservation_stations)
 
     def deliver(self):
         return self.result_buffer.pop(0)
@@ -662,8 +664,12 @@ class BTB:
     def fetch_pc(self, f_stall=False):
         if self.branch_entry != -1:
             return None
-        else:
+        if f_stall == False:
+            self.f_stall = f_stall
             return self.new_pc
+        elif f_stall == True:
+            self.f_stall = f_stall
+            return None
 
     def issue(self, instruction, current_pc):
         """ Function to issue instruction to the BTB. Will return value of predicted PC
@@ -710,9 +716,10 @@ class BTB:
             if self.branch_entry == -1:
                 print("No branch prediction in BTB, issue PC normally")
                 self.new_pc = self.new_pc + 4
-            else:
-                print("Waiting on a branch to resolve...")
-                self.new_pc = self.new_pc
+            elif self.branch_entry != -1 and not self.f_stall:
+                print("Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
+                self.new_pc = self.new_pc 
+                
         elif self.correct is False:
             print("***MISPREDICTION*** Stall a cycle")
             self.correct = None

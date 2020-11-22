@@ -75,7 +75,7 @@ class Processor:
         while(1):
             # FETCH/DECODE/ISSUE
             self.cycle_count += 1
-            self.reg_alias_tbl.tick()
+            self.reg_alias_tbl.tick() # RAT GIVES ISSUES
             self.brnch_trnsl_buf.tick()
             print(self.brnch_trnsl_buf)
 
