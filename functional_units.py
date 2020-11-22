@@ -54,7 +54,7 @@ class Instruction():
             # Addi instruction only
             elif args[0] == "Addi":
                 self.type = "i"
-                self.op = args[0] 
+                self.op = args[0]
                 self.rt = args[1].strip(",")
                 print("Addi rt = {}".format(self.rt))
                 self.rs = args[2].strip(",")
@@ -252,7 +252,7 @@ class FPAdder:
                 self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
-                
+
             self.num_filled_stations += 1
 
         if self.num_filled_stations == len(self.reservation_stations):
@@ -655,7 +655,7 @@ class BTB:
         output_string += "========================\n"
         return output_string
 
-    def fetch_pc(self):
+    def fetch_pc(self, f_stall=False):
         if self.branch_entry != -1:
             return None
         else:
@@ -750,7 +750,7 @@ class BTB:
         print("@@@@@@@@@@@@@@@@ BTB PC: {}".format(self.new_pc))
 
     def read_cdb(self, data_bus):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as 
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as
         {"dest":Destination, "value":Value, "op":Type of Instruction}
         """
         print(">>>>>>>>>>>>>>>>>> BTB Read {} from data bus".format(data_bus))
@@ -791,7 +791,7 @@ if __name__ == "__main__":
             return True
         def save_state(self):
             return True
-            
+
     rat = RAT()
     rob = ROB(4, int_arf, fp_arf)
     int_adders = [IntegerAdder(2, 2, i, rob) for i in range(2)]

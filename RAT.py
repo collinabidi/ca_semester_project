@@ -48,6 +48,8 @@ class RegisterAliasTable:
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
                 self.actv_instruction = work_instruction
+        else:
+            self.func_units["BTB"].fetch_pc(f_stall=True)
 
         # translate ISA registers into actual registers (decode)
         transformation = self.__translate__(work_instruction)
@@ -56,6 +58,9 @@ class RegisterAliasTable:
         if transformation is None:
             hazard_flag = True
             transformation = Instruction("NOP") # ROB structural hazard, issue NOP
+        else:
+            # if ROB not full, save transformed instruction (prevents double ROB reservation)
+            self.actv_instruction = transformation
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
@@ -66,9 +71,8 @@ class RegisterAliasTable:
             self.actv_instruction = None
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb
-                #  route_tbl pushes it to INT for evaluation
+                #  route_tbl pushed it to INT for evaluation
                 self.func_units["BTB"].issue(transformation, next_pc)
-        # if could not push or transform, we still hold this actv instruction, effectively stalling one cycle
 
 
     # called by ROB to alert that rob_reg is being commited so can be freed
@@ -106,15 +110,17 @@ class RegisterAliasTable:
             rob_dict = {"op":instr_raw.op, "dest":instr_raw.rt, "type":instr_raw.type}
 
         if instr_raw.type == "i":
+            if "ROB" in instr_raw.rt:
+                # prevents a stalled instruction from re-translation
+                return instr_raw
+
             if instr_raw.op in ["Bne", "Beq"]:
-                # Brendan please check that this is correct
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
                 return Instruction([instr_raw.op, rs, rt, addr_imm])
             else:
                 # Only used for Addi
-                # Brendan please check that this is correct
                 print(self.rob)
                 rt = self.rob.enqueue(rob_dict)
                 if rt is None:
@@ -126,6 +132,10 @@ class RegisterAliasTable:
 
 
         elif instr_raw.type == "r":
+            if "ROB" in instr_raw.rd:
+                # prevents a stalled instruction from re-translation
+                return instr_raw
+
             rd = self.rob.enqueue(rob_dict)
             if rd is None:
                 return None
