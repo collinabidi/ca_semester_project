@@ -106,5 +106,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test5a1.txt", verbose=True)
+    my_processor = Processor("test_files/test5a2.txt", verbose=True)
     my_processor.run_code(bp=True)
