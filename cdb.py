@@ -38,10 +38,8 @@ class Arbiter:
 
         self.source_states = [0] * len(self.cdb.sources) # init ready state arr
 
-
     def reset(self):
         self.source_states = [0] * len(self.cdb.sources)
-
 
     def source_poll(self):
         # determines state change of source in result buffer
@@ -54,7 +52,6 @@ class Arbiter:
             if ready_out is not None and self.source_states[i] == 0:
                 self.source_states[i] = 1
                 self.output_q.append(i)
-
 
     def arbitrate(self):
         # returns the next in line for CDB service or None if no data should tx
@@ -71,7 +68,6 @@ class Arbiter:
         return next_up
 
 
-
 # Common Data Bus for transfering results to registers
 class CommonDataBus:
     def __init__(self, sources, subscribers):
@@ -79,7 +75,6 @@ class CommonDataBus:
         self.subscribers = subscribers # list of units reading the bus.
         self.bus_data = None   # Available data for bus subscribers
         self.arbiter = Arbiter(self)
-
 
     # standard heartbeat function
     def tick(self):
@@ -95,12 +90,10 @@ class CommonDataBus:
         else:
             self.bus_data = None
 
-
     # pickup function for subscriber units to call for data
     #  data lives on line for 1 cycle. If nothing is available, output is none
     def poll(self):
         return self.bus_data
-
 
     # clears data on line. Doesn't clear sources by default
     def reset(self, src_kill=False):
@@ -108,7 +101,6 @@ class CommonDataBus:
             self.sources = []
         self.bus_data = None
         self.arbiter.reset()
-
 
     # defined as a standard command, but bus does not hold state data
     def rewind(self):

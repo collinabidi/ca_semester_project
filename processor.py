@@ -30,15 +30,17 @@ class Processor:
         self.reorder_buf.register_arfs(initr.ARFI, initr.ARFF)
 
         # Register all functional units
+        # TODO: Multiple FUs
         self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
                            FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
                            FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), int(initr.FPM["nfu"]), self.reorder_buf),
                            IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), int(initr.intA["nfu"]), self.reorder_buf) ]
 
         # Initialize BTB
+        # TODO: Pass a list of all IntAdders, FPAdders, FPMultipliers
         self.brnch_trnsl_buf = BTB(self.reorder_buf, self.reg_alias_tbl,
-                                   self.func_units[3], self.func_units[1],
-                                   self.func_units[2])
+                                   [self.func_units[3]], [self.func_units[1]],
+                                   [self.func_units[2]])
 
         # Specify which units subscribe to the CDB
         cdb_subs = [self.brnch_trnsl_buf, self.reorder_buf]
@@ -65,8 +67,6 @@ class Processor:
         self.reorder_buf.RAT = self.reg_alias_tbl
         self.reorder_buf.LSQ = self.func_units[0]
 
-
-
     def run_code(self, bp=False):
         # run the heartbeat loop
         if self.verbose:
@@ -77,6 +77,7 @@ class Processor:
             self.cycle_count += 1
             self.reg_alias_tbl.tick()
             self.brnch_trnsl_buf.tick()
+            print(self.brnch_trnsl_buf)
 
             # EXECUTE
             for unit in self.func_units:
@@ -88,9 +89,10 @@ class Processor:
             """ If the BTB mispredicted, the rewind can be triggered here internally
                 cdb->btb.read_cdb()->btb.component_ref.rewind()
             """
+            print(self.brnch_trnsl_buf)
 
             # COMMIT
-            self.reorder_buf.tick()
+            committed_instruction = self.reorder_buf.tick()
             print(self.reorder_buf)
 
             #print system state

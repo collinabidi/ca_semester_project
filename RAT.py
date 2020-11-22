@@ -14,6 +14,8 @@ class RegisterAliasTable:
 
         self.__init_registers__(register_qty)
 
+        self.rat_map_history = {}
+
     def __str__(self):
         output_string = "============== RAT =====================\n"
         output_string += "Entry\tValue\t|\tEntry\tValue\n"
@@ -35,18 +37,16 @@ class RegisterAliasTable:
 
         # check for active stall and fetch
         work_instruction = self.actv_instruction
-        print("Work Instruction: {}".format(work_instruction))
         if work_instruction is None:
             next_pc = self.func_units["BTB"].fetch_pc()
             print("Received PC = {} from BTB".format(next_pc))
-            print("Is PC beyond the end? {}".format(next_pc >= self.instr_queue.total_instructions*4))
             if next_pc is None or next_pc >= self.instr_queue.total_instructions*4:
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>> STALL or END <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
                 hazard_flag = True
                 work_instruction = Instruction("NOP")  # Issue Nop
                 print("issuing NOP")
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
-                print("Fetched instruction from Instruction Queue: {}".format(work_instruction))
                 self.actv_instruction = work_instruction
 
         # translate ISA registers into actual registers (decode)
@@ -67,7 +67,7 @@ class RegisterAliasTable:
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb
                 #  route_tbl pushes it to INT for evaluation
-                self.func_units["BTB"].issue(transformation)
+                self.func_units["BTB"].issue(transformation, next_pc)
         # if could not push or transform, we still hold this actv instruction, effectively stalling one cycle
 
 
@@ -80,11 +80,22 @@ class RegisterAliasTable:
             if rob_reg == reg_ptr:
                 self.rat_map[arf_reg] = arf_reg
 
+    def save_state(self):
+        """ Saves a copy of the RAT. Needs to be called when a branch instruction is issued from
+        instruction buffer
+        """
+        self.rat_map_history = self.rat_map.copy()
+
+    def rewind(self):
+        """ Used to reset the RAT back to the instruction before the branch occurred
+        """
+        self.rat_map = self.rat_map_history.copy()
+        #self.actv_instruction = None
+
 
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
         #  then remaps registers from current table
-        print("Raw Instruction: {}".format(instr_raw))
         if instr_raw.type not in ["r", "i"]:
             return instr_raw
 
@@ -98,7 +109,6 @@ class RegisterAliasTable:
             if instr_raw.op in ["Bne", "Beq"]:
                 # Brendan please check that this is correct
                 rs = self.rat_map[instr_raw.rs]
-                self.rat_map[instr_raw.rs] = rs
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
                 return Instruction([instr_raw.op, rs, rt, addr_imm])
