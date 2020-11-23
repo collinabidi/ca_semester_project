@@ -27,13 +27,13 @@ class Processor:
         self.verbose = verbose
         self.tracker = TimingTable(self.cycle_count)
         self.instr_buf = InstructionBuffer(config_file)
-        self.reg_alias_tbl = RegisterAliasTable()
+        self.reg_alias_tbl = RegisterAliasTable(register_qty=16)
         self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # Number of INT ARF and FP ARF currently hardcoded
         self.reorder_buf.register_arfs(initr.ARFI, initr.ARFF)
 
         # Register all functional units
         # TODO: Multiple FUs
-        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], self.reorder_buf, initr.CBDe, config=initr.memory),
+        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], initr.LSU["cie"], self.reorder_buf, initr.CBDe, wl=1, config=initr.memory),
                            FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
                            FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), int(initr.FPM["nfu"]), self.reorder_buf),
                            IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), int(initr.intA["nfu"]), self.reorder_buf) ]
@@ -111,5 +111,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test1a.txt", verbose=True)
+    my_processor = Processor("test_files/test3b.txt", verbose=True)
     my_processor.run_code(bp=True)

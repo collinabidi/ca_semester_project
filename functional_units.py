@@ -40,12 +40,13 @@ class Instruction():
                 self.type = "i"
                 self.op = args[0]
                 self.pc = pc
-                self.rs = args[1].strip(",")
+                self.rt = args[1].strip(",")
                 if args[0] in ["Bne", "Beq"]:
-                    self.rt = args[2].strip(",")
+                    self.rs = args[2].strip(",")
                     self.addr_imm = args[3].strip(",")
                 elif args[0] in ["Ld","Sd"]:
-                    self.rd = args[2].split("(")[1].strip(")")
+                    print("[INSTR] " + str(args[2]))
+                    self.rs = args[2].split("(")[1].strip(")")
                     self.addr_imm = float(args[2].split("(")[0])
                 elif args[0] in ["Addi"]:
                     self.rt = args[2].strip(",")
@@ -293,7 +294,7 @@ class FPAdder:
                     tracker.update("execute", {"pc":instruction["instruction"].pc})
                 elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < self.cycles_in_ex and instruction["countdown"] != 0:
                     instruction["countdown"] -= 1
-                elif instruction["countdown"] == 0:              
+                elif instruction["countdown"] == 0:
                     # Calculate value
                     if instruction["op"] == "Add.d":
                         answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
@@ -306,7 +307,7 @@ class FPAdder:
                     self.num_filled_stations -= 1
                 elif instruction["qj"] != None or instruction["qk"] != None:
                     print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
-            
+
             self.last_issued = None
 
     def save_state(self):
@@ -538,7 +539,7 @@ class ROB:
             if self.last_wb != entry["tag"]:
                 if entry["op"] == "Ld" or entry["op"] == "Sd":
                     print("!MEMCOMMIT: {}".format(entry["instruction"]))
-                    tracker.update("mem",{"pc":entry["instruction"].pc})
+                    tracker.update("commit",{"pc":entry["instruction"].pc}) #@Collin - changed this from "memory" to "commit"
                     self.mem_commit(entry)
                     return self.dequeue()
                 else:
@@ -570,7 +571,7 @@ class ROB:
         return self.rob[self.rear]["tag"]
 
     def dequeue(self):
-        """ Remove an entry to the ROB, returns the popped entry as 
+        """ Remove an entry to the ROB, returns the popped entry as
             {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination, "instruction":Instruction}
         """
         if self.front == -1:
@@ -586,7 +587,7 @@ class ROB:
             return temp
 
     def read_cdb(self, bus_data, tracker=None):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as 
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as
             {"dest":Destination, "value":Value, "instruction":Instruction}
         """
         for entry in self.rob:
@@ -608,8 +609,8 @@ class ROB:
             self.RAT.commit_update(entry["tag"])
 
     def mem_commit(self, register_name):
-        if entry["op"] in ["Sd", "Ld"]:
-            self.LSQ.mem_commit(entry["tag"])
+        if register_name["op"] in ["Sd", "Ld"]:
+            self.LSQ.mem_commit(register_name["tag"])
 
     def request(self, register_name):
         if "ROB" in register_name:
@@ -738,8 +739,8 @@ class BTB:
                 self.new_pc = self.new_pc + 4
             elif self.branch_entry != -1 and self.f_stall:
                 print("Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
-                self.new_pc = self.new_pc 
-                
+                self.new_pc = self.new_pc
+
         elif self.correct is False:
             print("***MISPREDICTION***")
             self.correct = None
