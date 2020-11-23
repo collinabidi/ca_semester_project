@@ -154,7 +154,6 @@ class FPMultiplier:
             self.num_filled_stations += 1
             if self.num_filled_stations == self.size:
                 print("FP Multiplier {} is now full!".format(self.fu_number))
-                
         return None
 
     def deliver(self):
