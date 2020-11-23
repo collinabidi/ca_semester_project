@@ -24,6 +24,7 @@ class Processor:
         # Initialize components
         self.cycle_count = 0
         self.verbose = verbose
+        self.tracker = TimingTable()
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
         self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # Number of INT ARF and FP ARF currently hardcoded
@@ -71,28 +72,28 @@ class Processor:
         # run the heartbeat loop
         if self.verbose:
             sys_msg(self.instr_buf)
-        
+
         while(1):
-            # FETCH/DECODE/ISSUE
+            # TIME TABLE PREP
             self.cycle_count += 1
-            self.reg_alias_tbl.tick() # RAT GIVES ISSUES
-            self.brnch_trnsl_buf.tick()
+            self.tracker.current_cyc = self.cycle_count
+
+            # FETCH/DECODE/ISSUE
+            self.reg_alias_tbl.tick(self.tracker)
+            self.brnch_trnsl_buf.tick(self.tracker)
             print(self.brnch_trnsl_buf)
 
             # EXECUTE
             for unit in self.func_units:
-                unit.tick()
+                unit.tick(self.tracker)
                 print(unit)
 
             # WRITE BACK
-            self.CDB.tick()
-            """ If the BTB mispredicted, the rewind can be triggered here internally
-                cdb->btb.read_cdb()->btb.component_ref.rewind()
-            """
+            self.CDB.tick(self.tracker)
             print(self.brnch_trnsl_buf)
 
             # COMMIT
-            committed_instruction = self.reorder_buf.tick()
+            committed_instruction = self.reorder_buf.tick(self.tracker)
             print(self.reorder_buf)
 
             #print system state
