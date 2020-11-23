@@ -538,11 +538,11 @@ class ROB:
             if self.last_wb != entry["tag"]:
                 if entry["op"] == "Ld" or entry["op"] == "Sd":
                     print("!MEMCOMMIT: {}".format(entry["instruction"]))
-                    tracker.update("commit",{"pc":entry["instruction"].pc})
+                    tracker.update("mem",{"pc":entry["instruction"].pc})
                     self.mem_commit(entry)
                     return self.dequeue()
                 else:
-                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
+                    print("!COMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc})
                     self.commit(entry)
                     return self.dequeue()
