@@ -67,7 +67,11 @@ class RegisterAliasTable:
         push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
-        if push_result is not type(Warning) and hazard_flag is False:
+        print("##### Pushed result to Functional Unit: {}".format(push_result))
+        print("##### type of push result: {}".format(type(push_result)))
+        print("##### Hazard Flag: {}".format(hazard_flag))
+        if type(push_result) is not Warning and hazard_flag == False:
+            print("Push result is not of type Warning and hazard flag == false")
             self.actv_instruction = None
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb

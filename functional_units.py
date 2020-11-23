@@ -140,8 +140,9 @@ class FPMultiplier:
         """ Function to insert an instruction into the reservation station
         """
         # Check if there's enough room in the reservation stations
+        print("Issue inside of FPMULT")
         if self.num_filled_stations >= self.size:
-            print("!!!!!!!!!!!!!!!!!!!!FP MULTIPLIER FULL")
+            print(">>>>>>>>>>>>>>>>FP MULTIPLIER FULL")
             return Warning("Reservation Station of FPMultiplier {} is full".format(self.fu_number))
         else:
             # Generate tag and fill station
@@ -153,6 +154,8 @@ class FPMultiplier:
             self.num_filled_stations += 1
             if self.num_filled_stations == self.size:
                 print("FP Multiplier {} is now full!".format(self.fu_number))
+                
+        return None
 
     def deliver(self):
         """ Deliver the result to the CDB and remove it from the buffer
@@ -713,10 +716,10 @@ class BTB:
         """
         print(">>>>>>>>>>>>>>>>>>>>>>>>>> BTB Correct Status: {}".format(self.correct))
         if self.correct is None:
-            if self.branch_entry == -1:
+            if self.branch_entry == -1 and not self.f_stall:
                 print("No branch prediction in BTB, issue PC normally")
                 self.new_pc = self.new_pc + 4
-            elif self.branch_entry != -1 and not self.f_stall:
+            elif self.branch_entry != -1 and self.f_stall:
                 print("Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc 
                 
