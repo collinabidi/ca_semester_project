@@ -32,19 +32,23 @@ from functional_units import *
 
 
 class LoadStoreQueue:
-    def __init__(self, mem_size, queue_len, cycles_in_mem, rob, CDBe, verbose=False, config=None, wl=4):
+    def __init__(self, mem_size, queue_len, cyc_in_mem, cyc_in_exe, rob, CDBe, verbose=False, config=None, wl=4):
         # hardware params
         self.verbose = verbose
         self.num_stats_free = int(queue_len)
         self.queue_sz = int(queue_len)
-        self.cycles_in_mem = int(cycles_in_mem)
+        self.cycles_in_mem = int(cyc_in_mem)
+        self.cycles_in_exe = int(cyc_in_exe)
+        self.CDBe = int(CDBe)
+        self.fwd_cost = 1
         #sub-component params
+        self.enqueue_buf = None
         self.queue_stations = [] * int(queue_len)
         self.result_buffer = []
         self.rb_history = []
         self.lsq_history = []
-        self.CDBe = int(CDBe)
         self.mem_unit = Memory(int(mem_size), word_len=wl, mem_config=config, verbose=verbose)
+        self.mem_alu = {"target":-1, "busy":False,"countdown":None}
         #component ref params
         self.reorder_buffer = rob
 
@@ -55,54 +59,134 @@ class LoadStoreQueue:
 
         # create new queue entry with default value
         enqueue = {"op":instr.op, "qrs":instr.rs, "qrt":instr.rt, \
-                   "vrs":None, "vrt":None, "imm":instr.addr_imm, \
-                   "countdown":self.cycles_in_mem, "commit":commit_check(instr)}
+                   "vrs":None, "vrt":None, "imm":int(instr.addr_imm), \
+                   "countdown":self.cycles_in_mem, "commit":commit_check(instr), \
+                   "eff_addr": None, "pc":instr.pc}
 
         enqueue["vrs"] = self.reorder_buffer.request(enqueue["qrs"])
         enqueue["vrt"] = self.reorder_buffer.request(enqueue["qrt"])
 
-        self.num_stats_free -= 1
-        self.queue_stations.append(enqueue)
-
+        self.enqueue_buf = enqueue
+        self.num_stats_free -= 1  #preemptively reserve the space
 
     # standard heartbeat operation
-    def tick(self, tracker=None):
+    def tick(self, tracker):
         if self.num_stats_free == self.queue_sz:
             # if nothing is queue'd, nothing to do.
             return
+        self.__exe_stage__(tracker)  # memory has its own exe stage for eff_addr
+        self.__mem_stage__(tracker)
 
+
+
+    def __exe_stage__(self, tracker):
+        if self.mem_alu["busy"]:
+            self.mem_alu["countdown"] -= 1
+            if self.mem_alu["countdown"] == 0:
+                q_target = self.queue_stations[self.mem_alu["target"]]
+                q_target["eff_addr"] = q_target["vrs"] + int(q_target["imm"])
+                self.mem_alu["busy"] = False
+                self.mem_alu["target"] = -1
+
+        if not self.mem_alu["busy"]:
+            for i in range(len(self.queue_stations)):
+                # find first entry w/o eff_addr and set up adder to work
+                entry = self.queue_stations[i]
+                if  entry["vrs"] is not None and entry["eff_addr"] is None:
+                    print("[LSQ] Found " + str(i))
+                    self.mem_alu["target"] = i
+                    self.mem_alu["countdown"] = self.cycles_in_exe
+                    self.mem_alu["busy"] = True
+                    tracker.update("execute", self.queue_stations[i])
+                    break
+
+        if self.enqueue_buf is not None:
+            self.queue_stations.append(self.enqueue_buf)
+            self.enqueue_buf = None
+
+
+    def __mem_stage__(self, tracker):
+        # value-forwarding operations - pass all values and change countdowns
+        trgt_addr = 0
+        fwd_val = 0
+        for i in range(len(self.queue_stations)):
+            s_instr = self.queue_stations[i]
+            if entry_str_fwd_ready(s_instr): # look for each ready Sd
+                trgt_addr = s_instr["eff_addr"]
+                fwd_val = s_instr["vrt"]
+
+                for j in range(i, len(self.queue_stations)):  # look for all following Lds
+                    l_instr = self.queue_stations[j]
+                    if entry_ld_fwd_ready(l_instr, trgt_addr):
+                        l_instr["vrt"] = fwd_val
+                        l_instr["countdown"] = self.fwd_cost
+
+        # memory operations
+        data_fwd_idex = self.queue_sz + 1
+            # direct operations
         queue_leader = self.queue_stations[0]
-        if lsq_entry_ready(queue_leader) and(len(self.result_buffer) < self.CDBe):
-            # register is ready to go to mem. & not waiting to tender a result
-            queue_leader["countdown"] -= 1
-            if (queue_leader["countdown"]) == 0:
-                # calc effective addres
-                eff_addr = queue_leader["vrt"] + int(queue_leader["imm"])
-                # act on memory
-                res = self.mem_unit.access(queue_leader["op"], eff_addr, queue_leader["vrs"])
+        if not lsq_fwd_ready(queue_leader): #check for fwd'd value
+            if lsq_entry_ready(queue_leader):  #check that this instruction is set to go to memory
+                if queue_leader["countdown"] == 0:  # queue leader has been fully served by memory
 
-                # ready output for system if "Ld"
-                if queue_leader["op"] == "Ld":
-                    queue_leader["vrs"] = res
-                    result = {"op":"Ld", "pc":None,
-                              "dest":queue_leader["qrs"], "value":res}
-                    self.result_buffer.append(result)
+                    if queue_leader["op"] == "Ld":
+                        if len(self.result_buffer) < self.CDBe:  # there is space in the results buffer
+                            res = self.mem_unit.access("Ld", queue_leader["eff_addr"], None)
+                            ld_res = {"op":"Ld", "pc":queue_leader["pc"], \
+                                      "dest":queue_leader["qrt"], "value":res}
+                            self.result_buffer.append(ld_res)
+                            self.queue_stations.pop(0)
+                            self.num_stats_free += 1
+                            data_fwd_idex = 0
+                    else:  # store ops, auto-commit/dequeue when they complete
+                        self.mem_unit.access("Sd", queue_leader["eff_addr"], queue_leader["vrt"])
+                        self.queue_stations.pop(0)
+                        self.num_stats_free += 1
+                        self.__reposition_alu_ptr__(0) # its possible to do a store and load-fwd on the same cycle
+                        tracker.update("commit", queue_leader) # memory is also commit for Sd
 
-                # dequeue the operation
-                self.num_stats_free += 1
-                self.queue_stations.pop(0)
+                    # Queue leader was simply served, we must load the next instr. to memory in same cycle
+                    if len(self.queue_stations) != 0:  # empty queue check
+                        next_leader = self.queue_stations[0]
+                        if not lsq_fwd_ready(next_leader): # we only serve non-fwd'd entries
+                            if next_leader["countdown"] == self.cycles_in_mem:
+                                tracker.update("memory", next_leader)
+                            next_leader["countdown"] -= 1
+
+                else: # if the instr is not fwd'd a val, and is not counted down, then mem is serving it
+                    if queue_leader["countdown"] == self.cycles_in_mem:
+                        tracker.update("memory", queue_leader)
+                    queue_leader["countdown"] -= 1
+
+        # value forwarding operations - if Ld did not go to result buffer, then we can now.
+        for entry in self.queue_stations:
+            if lsq_fwd_ready(entry):
+                if entry["countdown"] == 0:
+                    # ready to dequeue, check nothing already buff'd and space available
+                    if data_fwd_idex == self.queue_sz + 1 and len(self.result_buffer) < self.CDBe:
+                        data_fwd_idex = self.queue_stations.index(entry)
+                        ld_res = {"op":"Ld", "pc":entry["pc"], \
+                                  "dest":entry["qrt"], "value":entry["vrt"]}
+                        self.num_stats_free += 1
+                        self.result_buffer.append(ld_res)
+                        self.queue_stations.pop(data_fwd_idex)
+
+                else:   # entry got value but must pay transfer penalty
+                    if entry["countdown"] == self.fwd_cost:
+                        tracker.update("memory", entry)
+                    entry["countdown"] -= 1
+
+        self.__reposition_alu_ptr__(data_fwd_idex)
 
 
     def deliver(self):
         return self.result_buffer.pop(0)
 
 
-    # THIS NEEDS TO BE CALLED BY THE ROB WHEN IT COMMITS A VALUE
-    #   If the value was tied to a store operation, that operation will dequeue
     def mem_commit(self, rob_loc):
         for stat in self.queue_stations:
             if stat["op"] == "Sd":
-                if rob_loc == stat["qrs"]:
+                if rob_loc == stat["qrt"]:
                     stat["commit"] = True
 
 
@@ -117,42 +201,54 @@ class LoadStoreQueue:
             if lsq_entry["qrt"] == bus_data["dest"]:
                 lsq_entry["vrt"] = bus_data["value"]
 
-
     # clear held values
     def reset(self, mem_reset=False):
         self.queue_stations = []
         self.result_buffer = []
+        self.rb_history = None
+        self.lsq_history = None
+        self.mem_alu = {"target":-1, "busy":False,"countdown":None}
         if mem_reset:
             self.mem_unit.reset()
 
+    # branch prediction state save
     def save_state(self):
         self.rb_history = self.result_buffer.copy()
         self.lsq_histroy = self.queue_stations.copy()
 
     # branch prediction rollback
     def rewind(self):
-        return
+        rb_restore = self.rb_history.copy()
+        lsq_restore = self.lsq_history.copy()
+        self.reset()
+        self.queue_stations = lsq_restore
+        self.result_buffer = rb_restore
+
+    # keeps alu operating on the right element of the queue
+    def __reposition_alu_ptr__(self, popped_idex):
+        if popped_idex < self.mem_alu["target"]:
+            self.mem_alu["target"] -= 1
 
 
     def __str__(self):
         out_str= "======================== Load/Store Queue [Size: "+str(self.queue_sz)+"] =========================\n"
-        out_str+="  Op |  q_rs  |  q_rt  |  v_rs  |  v_rt  | Str.Commit | Countdown | Immediate\n"
+        out_str+="  Op | q_rs | q_rt | v_rs | v_rt |Address|Str.Commit|Countdown|Imm.\n"
         out_str+="-----------------------------------------------------------------------------\n"
 
         for stat in self.queue_stations:
             out_str += " " + stat["op"] + "  |  " + stat["qrs"] + "  |  " + \
                        stat["qrt"] + "  |  " + str(stat["vrs"]) + "  |  " +  \
-                       str(stat["vrt"]) + "  |   " + str(stat["commit"]) +  \
-                       "    |     " + str(stat["countdown"]) + "     |   " + \
-                       str(stat["imm"]) + "\n"
+                       str(stat["vrt"]) + "  |   " + str(stat["eff_addr"]) + "  |  " + \
+                       str(stat["commit"]) + "   |    " + str(stat["countdown"]) + \
+                       "     |   " + str(stat["imm"]) + "\n"
 
         out_str += "-----------------------------------------------------------------------------\n"
         out_str += "Results Buffer: {}".format(self.result_buffer)
         return out_str
 
 
-
-# stand alone rule about store commit rules
+# =====================RULES FOR CHECKING QUEUE ENTRY STATUS====================
+# stand alone rule about commit readiness
 def commit_check(register):
     # we only avoid default commit if we are waiting on the action from the ROB
     # return not (register.op == "Sd" and ("ROB" in register.rs))
@@ -163,19 +259,35 @@ def commit_check(register):
     return True
 
 
-# stand alone rule about LSQ entry readiness
+# stand alone rule about LSQ entry readiness for head of queue
 def lsq_entry_ready(entry):
     if entry["op"] == "Ld":
-        if entry["vrt"] is not None and entry["commit"] is True:
-            return True
-        return False
+        # if load made it front of queue, it's going to go to mem.
+        return entry["eff_addr"] is not None and entry["commit"] is True
 
     elif entry["op"] == "Sd":
-        if entry["vrs"] is not None and entry["vrt"] is not None and entry["commit"] is True:
-            return True
-        return False
+        # we can go to mem once we have a value, an address, and permission to commit
+        return entry["vrt"] is not None and entry["eff_addr"] is not None and entry["commit"] is True
 
     return False
+
+
+# stand alone rule about LSQ entry forward-readiness
+def lsq_fwd_ready(entry):
+    if entry["op"] == "Sd":
+        # never forward a store instruction out of queue
+        return False
+    # if the address and the value are in the station, action was forwarded, instr can leave queue
+    return entry["eff_addr"] is not None and entry["vrt"] is not None
+
+
+def entry_str_fwd_ready(entry):
+    return entry["op"] == "Sd" and entry["vrt"] is not None and entry["eff_addr"] is not None
+
+
+def entry_ld_fwd_ready(entry, ref_addr):
+    return entry["op"] == "Ld" and entry["eff_addr"] == ref_addr and entry["vrt"] is None
+# =============================================================================
 
 
 
@@ -194,7 +306,6 @@ class Memory:
 
         self.init_mem(mem_config)
 
-
     # force initialize values into the memory block
     def init_mem(self, mem_arr):
         if mem_arr is None:
@@ -209,8 +320,6 @@ class Memory:
                     print("[MEMRY]: Inputted Mem config did not expected size. " +\
                           "Size Param changed.")
             self.memory = mem_arr
-
-
 
     # completely async., completes function as called, at call.
     def access(self, io, byte_addr, value):
@@ -236,11 +345,9 @@ class Memory:
 
         return None
 
-
     # clears memory to zeros
     def reset(self):
         self.init_mem(None)
-
 
     # prints current contents of memory
     def __str__(self):

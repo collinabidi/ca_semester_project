@@ -33,6 +33,7 @@ class RegisterAliasTable:
 
     # fix me to handle PC correctly
     def tick(self, tracker):
+        print("[RAT]: Start Tick.")
         hazard_flag = False
 
         # check for active stall and fetch
@@ -102,18 +103,19 @@ class RegisterAliasTable:
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
         #  then remaps registers from current table
+        print("[RAT] Translating: " + str(instr_raw))
         if instr_raw.type not in ["r", "i"]:
             return instr_raw
 
         # Some instructions store result to rd, others store to rt
         if instr_raw.op in ["Add","Add.d","Sub","Sub.d","Mult.d"]:
             rob_dict = {"op":instr_raw.op, "dest":instr_raw.rd, "type":instr_raw.type, "instruction":instr_raw, "pc":instr_raw.pc}
-        elif instr_raw.op == "Addi":
+        elif instr_raw.op in ["Addi", "Ld"]:
             rob_dict = {"op":instr_raw.op, "dest":instr_raw.rt, "type":instr_raw.type, "instruction":instr_raw, "pc":instr_raw.pc}
 
         if instr_raw.type == "i":
-            if "ROB" in instr_raw.rt:
-                # prevents a stalled instruction from re-translation
+            # prevents a stalled instruction from re-translation
+            if "ROB" in instr_raw.rt or instr_raw.op == "Sd":
                 return instr_raw
 
             if instr_raw.op in ["Bne", "Beq"]:
@@ -122,7 +124,7 @@ class RegisterAliasTable:
                 addr_imm = instr_raw.addr_imm
                 return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
             else:
-                # Only used for Addi
+                # Only used for Addi & Ld
                 print(self.rob)
                 rt = self.rob.enqueue(rob_dict)
                 if rt is None:
@@ -130,7 +132,8 @@ class RegisterAliasTable:
                 self.rat_map[instr_raw.rt] = rt
                 rs = self.rat_map[instr_raw.rs]
                 addr_imm = instr_raw.addr_imm
-                return Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)
+                imm_rs = str(addr_imm)+"("+rs+")"
+                return Instruction([instr_raw.op, rt, imm_rs], pc=instr_raw.pc)
 
         elif instr_raw.type == "r":
             if "ROB" in instr_raw.rd:
