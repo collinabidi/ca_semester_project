@@ -306,7 +306,7 @@ class FPAdder:
                     self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
                     self.num_filled_stations -= 1
                 elif instruction["qj"] != None or instruction["qk"] != None:
-                    print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
+                    print("{} still waiting on {} or {}".format(tag, instruction["qj"], instruction["qk"]))
 
             self.last_issued = None
 
@@ -405,7 +405,7 @@ class IntegerAdder:
             elif instruction.op in ["Bne", "Beq"]:
                 # Bne: Rt != Rs? via subtraction
                 # Beq: Rt == Rs? via subtraction
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":"BTB"}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":"BTB", "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
 
@@ -666,6 +666,7 @@ class BTB:
         self.predicted_offset = 0
         self.actual_result = None
         self.f_stall = False
+        self.current_instruction = None
 
         # Register any unit that needs to have save_state() or rewind() called
         self.rob = rob
@@ -714,6 +715,7 @@ class BTB:
                 fp_multiplier.save_state()
             self.rs = instruction.rs
             self.rt = instruction.rt
+            self.current_instruction = instruction
             self.predicted_offset = int(instruction.addr_imm)
             self.branch_entry = current_pc % 8
 
@@ -731,7 +733,7 @@ class BTB:
                 self.prediction = False
                 self.predicted_pc = self.new_pc + self.predicted_offset * 4
 
-    def tick(self, tracker):
+    def tick(self, tracker=None):
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
         if self.correct is None:
@@ -743,6 +745,8 @@ class BTB:
 
         elif self.correct is False:
             print("***MISPREDICTION***")
+            tracker.update("wrtback", {"pc":self.current_instruction.pc})
+            self.current_instruction = None
             self.correct = None
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
@@ -767,17 +771,20 @@ class BTB:
         elif self.correct is True:
             # Reset all values if prediction is good
             print("***Correct prediction***")
+            tracker.update("wrtback", {"pc":self.current_instruction.pc})
+            self.current_instruction = None
             self.correct = None
             self.rt = None
             self.rs = None
             self.branch_entry = -1
             if self.actual_result == True:
-                print("Actually Taken")
+                print("@@@@@@ BTB Actually Taken")
                 self.new_pc = self.predicted_pc - 4
             else:
-                print("Actually Not Taken")
-                self.new_pc = self.new_pc
+                print("@@@@@@ BTB Actually Not Taken")
+                self.new_pc = self.new_pc + 4
             self.actual_result = None
+        print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
 
 
     def read_cdb(self, data_bus, tracker=None):

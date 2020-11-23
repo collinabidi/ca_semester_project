@@ -86,7 +86,7 @@ class Processor:
             # EXECUTE
             for unit in self.func_units:
                 unit.tick(self.tracker)
-                print(unit)
+                #print(unit)
 
             # WRITE BACK
             self.CDB.tick(self.tracker)
@@ -111,5 +111,5 @@ class Processor:
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test3b.txt", verbose=True)
+    my_processor = Processor("test_files/test5a.txt", verbose=True)
     my_processor.run_code(bp=True)
