@@ -66,7 +66,7 @@ class LoadStoreQueue:
 
 
     # standard heartbeat operation
-    def tick(self):
+    def tick(self, tracker=None):
         if self.num_stats_free == self.queue_sz:
             # if nothing is queue'd, nothing to do.
             return
@@ -106,7 +106,7 @@ class LoadStoreQueue:
                     stat["commit"] = True
 
 
-    def read_cdb(self, bus_data):
+    def read_cdb(self, bus_data, tracker=None):
         if bus_data is None:
             return
 
@@ -313,7 +313,7 @@ class test_cdb:
     def tick(self):
         self.cycles += 1
         cdb_data = [None, {"dest":"ROB1", "value":13}, {"dest":"ROB3", "value":59}]
-        self.sub.read_cdb(cdb_data[self.cycles % 3])
+        self.sub.read_cdb(cdb_data[self.cycles % 3], tracker=None)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from cdb import CommonDataBus
 from functional_units import *
 from memory import *
 from reading_input import input_parser
+from time_table import TimingTable
 
 
 # STAND ALONE SYSTEM PRINT & I/O FUNCTIONS
@@ -24,7 +25,7 @@ class Processor:
         # Initialize components
         self.cycle_count = 0
         self.verbose = verbose
-        self.tracker = TimingTable()
+        self.tracker = TimingTable(self.cycle_count)
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable()
         self.reorder_buf = ROB(int(initr.ROBe), 16, 16) # Number of INT ARF and FP ARF currently hardcoded
@@ -81,7 +82,6 @@ class Processor:
             # FETCH/DECODE/ISSUE
             self.reg_alias_tbl.tick(self.tracker)
             self.brnch_trnsl_buf.tick(self.tracker)
-            print(self.brnch_trnsl_buf)
 
             # EXECUTE
             for unit in self.func_units:
@@ -90,22 +90,26 @@ class Processor:
 
             # WRITE BACK
             self.CDB.tick(self.tracker)
-            print(self.brnch_trnsl_buf)
 
             # COMMIT
             committed_instruction = self.reorder_buf.tick(self.tracker)
             print(self.reorder_buf)
 
+            # Print tracker status
+            print(self.tracker)
+
             #print system state
             sys_print(0)
 
             if bp is True:
-                print("Cycle: " + str(self.cycle_count))
-                input("Break Pointing... Press Enter to step")
+                print("===============================================================================================================================")
+                print("Cycle {} complete *************************************************************************************************************".format(self.cycle_count))
+                print("===============================================================================================================================")
+                input("Break Pointing... Press Enter to step\n\n")
 
 
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test4long.txt", verbose=True)
+    my_processor = Processor("test_files/test1a.txt", verbose=True)
     my_processor.run_code(bp=True)

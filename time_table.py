@@ -12,6 +12,10 @@ class TimingTable:
         self.current_cyc = initial_clock  #processor updates this timely.
 
     def update(self, tag, data):
+        """ Update needs the tag ("issue" || "execute" || "memory" || "wrtback" || "commit")
+            and the data (Instruction || {"pc":INT})
+        """
+        print("Tracker received data: {}".format(data))
         if tag == "issue":
             # if instruction is being issued, its new - so save it straight away
             #  'data' should be the
@@ -30,7 +34,7 @@ class TimingTable:
             #  stage transition (We expect these to be dictionaries with a "pc" entry)
             for line in self.tracked_instructions:
                 if line["instr"].pc == data["pc"]:
-                    if self.__verify_tx__(line["instr"].op, line["state"], "tag"):
+                    if self.__verify_tx__(line["instr"].op, line["state"], tag):
                         line["state"] = tag
                         line[tag] = self.current_cyc
                         return
@@ -38,13 +42,13 @@ class TimingTable:
 
 
     def __str__(self):
-        output_str = "Iss | Exe | Mem | WB | Com | Instruction\n"
-        output_str +="-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n"
+        output_str = "Issue |  Exe  | Mem  | WB  |  Commit  | Instruction\n"
+        output_str +="-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
         for i in self.tracked_instructions:
             output_str += str(i["issue"]) + "\t" + str(i["execute"]) + "\t" + \
                           str(i["memory"]) + "\t" + str(i["wrtback"]) + "\t" + \
-                          str(i["commit"] + "\t" + "{}".format(i["instr"]))
-        output_str +="-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n"
+                          str(str(i["commit"]) + "\t" + "{}\n".format(i["instr"]))
+        output_str +="\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
         return output_str
 
 

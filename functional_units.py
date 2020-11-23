@@ -60,9 +60,7 @@ class Instruction():
                 self.pc = pc
                 self.op = args[0]
                 self.rt = args[1].strip(",")
-                print("Addi rt = {}".format(self.rt))
                 self.rs = args[2].strip(",")
-                print("Addi rs = {}".format(self.rs))
                 self.addr_imm = args[3].strip(",")
                 self.string = ""
                 for arg in args:
@@ -96,7 +94,6 @@ class InstructionBuffer:
 
         return self.instruction_list[int(pc / 4)]
 
-
     def __str__(self):
         output_string = "================================\n"
         output_string += "Index\t|\tInstruction\t\n"
@@ -122,6 +119,7 @@ class FPMultiplier:
         self.fu_number = fu_number
         self.cycles_in_ex = cycles_in_ex
         self.num_filled_stations = 0
+        self.last_issued = None
         self.size = num_reservations_stations
         for i in range(num_reservations_stations):
             tag = "FPMULT_{}_{}".format(str(fu_number), str(i))
@@ -148,7 +146,8 @@ class FPMultiplier:
             # Generate tag and fill station
             free_stations = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False]
             tag = free_stations[0]
-            self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vk":None, "vj":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+            self.last_issued = tag
+            self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vk":None, "vj":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd, "instruction":instruction}
             self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
             self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             self.num_filled_stations += 1
@@ -161,24 +160,29 @@ class FPMultiplier:
         """
         return self.result_buffer.pop(0)
 
-    def tick(self):
+    def tick(self, tracker):
         """ Go forward once cycle and perform calculations. Add a waiting instruction to be executed. If a station is done, put result on output buffer
         """
         new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
-            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == 10 and new_instruction_began != True:
-                instruction["countdown"] -= 1
-                new_instruction_began = True
-            elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < 10 and instruction["countdown"] != 0:
-                instruction["countdown"] -= 1
-            elif instruction["countdown"] == 0:
-                print("{} finished!".format(tag))
-                answer = float(self.reservation_stations[tag]["vj"]) * float(self.reservation_stations[tag]["vk"])
-
-                self.reservation_stations[tag]["value"] = answer
-                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
-                self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
-                self.num_filled_stations -= 1
+            if self.last_issued != tag:
+                if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == self.cycles_in_ex and new_instruction_began != True:
+                    instruction["countdown"] -= 1
+                    new_instruction_began = True
+                    print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+                    tracker.update("execute", {"pc":instruction["instruction"].pc})
+                elif self.last_issued == tag:
+                    self.last_issued = None
+                elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < self.cycles_in_ex and instruction["countdown"] != 0:
+                    instruction["countdown"] -= 1
+                elif instruction["countdown"] == 0:
+                    answer = float(self.reservation_stations[tag]["vj"]) * float(self.reservation_stations[tag]["vk"])
+                    self.reservation_stations[tag]["value"] = answer
+                    self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
+                    self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
+                    self.num_filled_stations -= 1
+            else:
+                self.last_issued = None
 
     def save_state(self):
         """ Saves a copy of the reservation stations. Needs to be called when a branch instruction is issued from
@@ -194,7 +198,7 @@ class FPMultiplier:
         self.executing = False
         self.current_tag = None
 
-    def read_cdb(self, bus_data):
+    def read_cdb(self, bus_data, tracker=None):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
         for tag, station in self.reservation_stations.items():
@@ -227,10 +231,11 @@ class FPAdder:
         self.fu_number = fu_number
         self.cycles_in_ex = cycles_in_ex
         self.num_filled_stations = 0
+        self.last_issued = None
         self.size = num_reservations_stations
         for i in range(num_reservations_stations):
             tag = "FPADD_{}_{}".format(str(fu_number), str(i))
-            self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
+            self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None, "instruction":None}
 
         # This buffer keeps a history of results and their associated tags to send to CDB
         self.result_buffer = []
@@ -246,19 +251,19 @@ class FPAdder:
         """
         # Check if there's enough room in the reservation stations
         if self.num_filled_stations >= self.size:
-            print("!!!!!!!!!!!!!!!!!!!!FP ADDER FULL")            
             return Warning("Reservation Station of FPAdder {} is full".format(self.fu_number))
         else:
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
+            self.last_issued = tag
             if instruction.op == "Add.d":
                 # Add.d: Fd = Fs + Ft
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd, "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
 
             elif instruction.op == "Sub.d":
                 # Sub.d: Fd = Fs - Ft
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd, "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
 
@@ -270,31 +275,39 @@ class FPAdder:
     def deliver(self):
         return self.result_buffer.pop(0)
 
-    def tick(self):
+    def tick(self, tracker):
         """ Go forward once cycle and perform calculations. Add a waiting instruction to be executed. If a station is done, put result on output buffer
         """
         # Let ready instructions operate
         new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
-            if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == 10 and new_instruction_began != True:
-                instruction["countdown"] -= 1
-                new_instruction_began = True
-            elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < 10 and instruction["countdown"] != 0:
-                instruction["countdown"] -= 1
-            elif instruction["countdown"] == 0:
-                print("{} finished!".format(tag))
-                # Calculate value
-                if instruction["op"] == "Add.d":
-                    answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
-                else:
-                    answer = float(self.reservation_stations[tag]["vj"]) - float(self.reservation_stations[tag]["vk"])
+            print("\tTAG: {}".format(tag))
+            print("\tLAST ISSUED: {}".format(self.last_issued))
+            print("\tTag != Last Issued: {}".format(self.last_issued != tag))
+            if tag != self.last_issued:
+                if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == self.cycles_in_ex and new_instruction_began != True:
+                    print("Beginning countdown")
+                    instruction["countdown"] -= 1
+                    new_instruction_began = True
+                    print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+                    tracker.update("execute", {"pc":instruction["instruction"].pc})
+                elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < self.cycles_in_ex and instruction["countdown"] != 0:
+                    instruction["countdown"] -= 1
+                elif instruction["countdown"] == 0:              
+                    # Calculate value
+                    if instruction["op"] == "Add.d":
+                        answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
+                    else:
+                        answer = float(self.reservation_stations[tag]["vj"]) - float(self.reservation_stations[tag]["vk"])
 
-                self.reservation_stations[tag]["value"] = answer
-                self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
-                self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
-                self.num_filled_stations -= 1
-            elif instruction["qj"] != None or instruction["qk"] != None:
-                print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
+                    self.reservation_stations[tag]["value"] = answer
+                    self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
+                    self.reservation_stations[tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "countdown":self.cycles_in_ex, "dest":None}
+                    self.num_filled_stations -= 1
+                elif instruction["qj"] != None or instruction["qk"] != None:
+                    print("{} still waiting on {} or {}".format(instruction["qj"], instruction["qk"]))
+            
+            self.last_issued = None
 
     def save_state(self):
         """ Saves a copy of the reservation stations. Needs to be called when a branch instruction is issued from
@@ -310,7 +323,7 @@ class FPAdder:
         self.executing = False
         self.current_tag = None
 
-    def read_cdb(self, bus_data):
+    def read_cdb(self, bus_data, tracker=None):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
         for tag, station in self.reservation_stations.items():
@@ -345,6 +358,7 @@ class IntegerAdder:
         self.countdown = cycles_in_ex
         self.executing = False
         self.current_tag = None
+        self.last_issued = None
         self.num_filled_stations = 0
         self.size = num_reservations_stations
         for i in range(num_reservations_stations):
@@ -370,37 +384,29 @@ class IntegerAdder:
         if self.num_filled_stations >= self.size:
             return Warning("Reservation Station of IntegerAdder {} is full".format(self.fu_number))
         else:
+            # Flag marks reservation station as just issued, so don't execute during next tick() cycle
             tag = [tag for tag, values in self.reservation_stations.items() if values["busy"] == False][0]
+            self.last_issued = tag
             if instruction.op == "Add":
                 # Add: Rd = Rs + Rt
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd, "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
-                print("Destination for add: {}".format(instruction.rd))
             elif instruction.op == "Sub":
                 # Sub: Rd = Rs - Rt
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd}
-                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rd, "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
             elif instruction.op == "Addi":
                 # Addi: Rt = Rs + imm
-                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":None, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt}
-                print("Checking ROB for {}".format(instruction.rs))
+                self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":None,"vk":None, "vj":instruction.addr_imm, "countdown":self.cycles_in_ex, "value":None, "dest":instruction.rt, "instruction":instruction}
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Destination is {}".format(instruction.rt))
             elif instruction.op in ["Bne", "Beq"]:
                 # Bne: Rt != Rs? via subtraction
                 # Beq: Rt == Rs? via subtraction
                 self.reservation_stations[tag] = {"busy":True, "op":instruction.op, "qk":instruction.rs, "qj":instruction.rt, "vj":None, "vk":None, "countdown":self.cycles_in_ex, "value":None, "dest":"BTB"}
-                print("Checking ROB for {}".format(instruction.rs))
                 self.reservation_stations[tag]["vk"] = self.rob.request(instruction.rs)
-                print("Checking ROB for {}".format(instruction.rt))
                 self.reservation_stations[tag]["vj"] = self.rob.request(instruction.rt)
-
 
             self.num_filled_stations += 1
 
@@ -408,13 +414,17 @@ class IntegerAdder:
             print("Integer Adder {} is full!".format(self.fu_number))
         return self.num_filled_stations == self.size
 
-    def tick(self):
+    def tick(self, tracker):
         """ Go forward once cycle and perform calculations. Add a waiting instruction to be executed. If a station is done, put result on output buffer
         """
         # Check for ready instructions and add to queue
         for tag, instruction in self.reservation_stations.items():
-            if instruction["vj"] != None and instruction["vk"] != None and tag not in self.ready_queue:
+            if instruction["vj"] != None and instruction["vk"] != None and tag not in self.ready_queue and tag != self.last_issued:
                 self.ready_queue.append(tag)
+                print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+                tracker.update("execute", {"pc":instruction["instruction"].pc})
+            elif tag == self.last_issued:
+                self.last_issued = None
 
         if self.countdown != 0 and self.executing == True:
             self.countdown -= 1
@@ -462,7 +472,7 @@ class IntegerAdder:
         self.executing = False
         self.current_tag = None
 
-    def read_cdb(self, bus_data):
+    def read_cdb(self, bus_data, tracker=None):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
         """
         for tag, station in self.reservation_stations.items():
@@ -497,7 +507,7 @@ class ROB:
         self.fp_arf = {"F{}".format(i):0.0 for i in range(1,fp_arf)}
         self.rob = [0] * num_rob_entries
         for i in range(num_rob_entries):
-            self.rob[i] = {"tag":"ROB{}".format(i+1),"op":None, "dest":None, "value":None, "finished":False}
+            self.rob[i] = {"tag":"ROB{}".format(i+1),"op":None, "dest":None, "value":None, "finished":False, "instruction":None}
         self.front = -1
         self.rear = -1
         self.LSQ = None
@@ -520,20 +530,28 @@ class ROB:
             print("ROB is Full")
         return output_string
 
-    def tick(self):
+    def tick(self, tracker):
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         #print("ROB Instruction in the front: {}".format(self.rob[self.front]))
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
-            if entry["op"] == "Ld" or entry["op"] == "Sd":
-                self.mem_commit(entry)
-                return self.dequeue()
+            if self.last_wb != entry["tag"]:
+                if entry["op"] == "Ld" or entry["op"] == "Sd":
+                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
+                    tracker.update("commit",{"pc":entry["instruction"].pc})
+                    self.mem_commit(entry)
+                    return self.dequeue()
+                else:
+                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
+                    tracker.update("commit",{"pc":entry["instruction"].pc})
+                    self.commit(entry)
+                    return self.dequeue()
             else:
-                self.commit(entry)
-                return self.dequeue()
+                self.last_wb = None
 
     def enqueue(self, entry):
-        """ Add an entry to the ROB, formatted as {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
+        """ Add an entry to the ROB, formatted as
+            {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination, "instruction":Instruction}
         """
         if ((self.rear + 1) % self.num_entries == self.front):
             print("ROB is full!")
@@ -552,7 +570,8 @@ class ROB:
         return self.rob[self.rear]["tag"]
 
     def dequeue(self):
-        """ Remove an entry to the ROB, returns the popped entry as {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination}
+        """ Remove an entry to the ROB, returns the popped entry as 
+            {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination, "instruction":Instruction}
         """
         if self.front == -1:
             print("ROB is empty")
@@ -566,14 +585,17 @@ class ROB:
             self.front = (self.front + 1) % self.num_entries
             return temp
 
-    def read_cdb(self, bus_data):
-        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as {"dest":Destination, "value":Value}
+    def read_cdb(self, bus_data, tracker=None):
+        """ Read data on CDB and check if unit is looking for that value. Data bus formatted as 
+            {"dest":Destination, "value":Value, "instruction":Instruction}
         """
         for entry in self.rob:
             if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
                 print("!WB {}".format(entry))
+                tracker.update("wrtback", {"pc":entry["pc"]})
+                self.last_wb = entry["tag"]
 
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
@@ -587,14 +609,13 @@ class ROB:
 
     def mem_commit(self, register_name):
         if entry["op"] in ["Sd", "Ld"]:
-            print("!COMMIT {}".format(entry))
             self.LSQ.mem_commit(entry["tag"])
 
     def request(self, register_name):
         if "ROB" in register_name:
-            print("Requesting {} from the ROB registers".format(register_name))
+            #print("Requesting {} from the ROB registers".format(register_name))
             matching_entry = next((entry for entry in self.rob if entry["tag"] == register_name), None)
-            print("Entry Index for {}: {}".format(register_name, matching_entry))
+            #print("Entry Index for {}: {}".format(register_name, matching_entry))
             if matching_entry == None or "value" not in matching_entry.keys():
                 #print("{} has no result, returning None".format(register_name))
                 return None
@@ -643,6 +664,7 @@ class BTB:
         self.new_pc = 0
         self.predicted_offset = 0
         self.actual_result = None
+        self.f_stall = False
 
         # Register any unit that needs to have save_state() or rewind() called
         self.rob = rob
@@ -701,29 +723,25 @@ class BTB:
                 self.branch_pc = self.new_pc
                 self.prediction = True
                 self.predicted_pc = self.new_pc + self.predicted_offset * 4
-                print("Predicted PC: {}".format(self.predicted_pc))
             else:
                 # Predict not taken
                 print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = False
                 self.predicted_pc = self.new_pc + self.predicted_offset * 4
-                print("Predicted PC: {}".format(self.predicted_pc))
 
-    def tick(self):
+    def tick(self, tracker):
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>> BTB Correct Status: {}".format(self.correct))
         if self.correct is None:
             if self.branch_entry == -1 and not self.f_stall:
-                print("No branch prediction in BTB, issue PC normally")
                 self.new_pc = self.new_pc + 4
             elif self.branch_entry != -1 and self.f_stall:
                 print("Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc 
                 
         elif self.correct is False:
-            print("***MISPREDICTION*** Stall a cycle")
+            print("***MISPREDICTION***")
             self.correct = None
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
@@ -760,13 +778,11 @@ class BTB:
                 self.new_pc = self.new_pc
             self.actual_result = None
 
-        print("@@@@@@@@@@@@@@@@ BTB PC: {}".format(self.new_pc))
 
-    def read_cdb(self, data_bus):
+    def read_cdb(self, data_bus, tracker=None):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as
         {"dest":Destination, "value":Value, "op":Type of Instruction}
         """
-        print(">>>>>>>>>>>>>>>>>> BTB Read {} from data bus".format(data_bus))
         if len(data_bus) > 0 and "op" in list(data_bus.keys()) and data_bus["op"] in ["Beq","Bne"]:
             if data_bus["op"] == "Beq":
                 if data_bus["value"] == 0:
@@ -788,62 +804,3 @@ class BTB:
                 self.correct = True
             elif self.actual_result != self.prediction:
                 self.correct = False
-
-# This only runs if we call `python3 functional_units.py` from the command line
-if __name__ == "__main__":
-    # Assume 16 maximum registers for the integer and floating_point register files
-    int_arf = {"R{}".format(i):0 for i in range(1,33)}
-    fp_arf = {"F{}".format(i):0.0 for i in range(1,33)}
-
-    # Initialize BTB and provide it with the relevant FUs
-    # Bad RAT to just test stuff
-    class RAT:
-        def __init__(self):
-            self.ree = 0
-        def rewind(self):
-            return True
-        def save_state(self):
-            return True
-
-    rat = RAT()
-    rob = ROB(4, int_arf, fp_arf)
-    int_adders = [IntegerAdder(2, 2, i, rob) for i in range(2)]
-    fp_adders = [FPAdder(2, 2, i, rob) for i in range(2)]
-    fp_multipliers = [FPMultiplier(2, 2, i, rob) for i in range(2)]
-    btb = BTB(rob, rat, int_adders, fp_adders, fp_multipliers)
-
-    # Tick BTB
-    current_pc = 0
-    print(btb)
-    btb.tick()
-    print(btb)
-    current_pc += 1
-
-    # Issue instruction to BTB
-    sample_branch = Instruction(["Beq", "R1", "R2", "3"])
-    print("Instruction: {}".format(sample_branch))
-    btb.issue(sample_branch, current_pc)
-    print(btb)
-    btb.tick()
-    print(btb)
-    current_pc += 1
-
-    btb.tick()
-    print(btb)
-    current_pc += 1
-
-    # BTB gets result from CDB that IS NOT what it's looking for
-    btb.read_cdb({"dest":"R1", "value":10,"op":"Addi"})
-    btb.tick()
-    print(btb)
-    current_pc += 1
-
-    # BTB gets result from CDB that IS what it's looking for
-    btb.read_cdb({"dest":"R1", "value":0,"op":"Beq"})
-    btb.tick()
-    print(btb)
-    current_pc += 1
-
-    btb.tick()
-    print(btb)
-    current_pc += 1

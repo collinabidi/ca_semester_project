@@ -32,19 +32,17 @@ class RegisterAliasTable:
         return output_string
 
     # fix me to handle PC correctly
-    def tick(self):
+    def tick(self, tracker):
         hazard_flag = False
 
         # check for active stall and fetch
         work_instruction = self.actv_instruction
         if work_instruction is None:
             next_pc = self.func_units["BTB"].fetch_pc()
-            print("Received PC = {} from BTB".format(next_pc))
             if next_pc is None or next_pc >= self.instr_queue.total_instructions*4:
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>> STALL or END <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
                 hazard_flag = True
                 work_instruction = Instruction("NOP")  # Issue Nop
-                print("issuing NOP")
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
                 self.actv_instruction = work_instruction
@@ -67,16 +65,16 @@ class RegisterAliasTable:
         push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
-        print("##### Pushed result to Functional Unit: {}".format(push_result))
-        print("##### type of push result: {}".format(type(push_result)))
-        print("##### Hazard Flag: {}".format(hazard_flag))
         if type(push_result) is not Warning and hazard_flag == False:
-            print("Push result is not of type Warning and hazard flag == false")
             self.actv_instruction = None
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb
                 #  route_tbl pushed it to INT for evaluation
                 self.func_units["BTB"].issue(transformation, next_pc)
+
+            # Update timing table
+            print("!ISSUE: {}".format(transformation))
+            tracker.update("issue", transformation)
 
 
     # called by ROB to alert that rob_reg is being commited so can be freed
@@ -109,9 +107,9 @@ class RegisterAliasTable:
 
         # Some instructions store result to rd, others store to rt
         if instr_raw.op in ["Add","Add.d","Sub","Sub.d","Mult.d"]:
-            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rd, "type":instr_raw.type}
+            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rd, "type":instr_raw.type, "instruction":instr_raw, "pc":instr_raw.pc}
         elif instr_raw.op == "Addi":
-            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rt, "type":instr_raw.type}
+            rob_dict = {"op":instr_raw.op, "dest":instr_raw.rt, "type":instr_raw.type, "instruction":instr_raw, "pc":instr_raw.pc}
 
         if instr_raw.type == "i":
             if "ROB" in instr_raw.rt:
@@ -122,7 +120,7 @@ class RegisterAliasTable:
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
-                return Instruction([instr_raw.op, rs, rt, addr_imm])
+                return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
             else:
                 # Only used for Addi
                 print(self.rob)
@@ -132,8 +130,7 @@ class RegisterAliasTable:
                 self.rat_map[instr_raw.rt] = rt
                 rs = self.rat_map[instr_raw.rs]
                 addr_imm = instr_raw.addr_imm
-                return Instruction([instr_raw.op, rt, rs, addr_imm])
-
+                return Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)
 
         elif instr_raw.type == "r":
             if "ROB" in instr_raw.rd:
@@ -153,7 +150,7 @@ class RegisterAliasTable:
                 rs = self.rat_map[instr_raw.rs]
             else:
                 rs = instr_raw.rs
-            return Instruction([instr_raw.op, rd, rs, rt])
+            return Instruction([instr_raw.op, rd, rs, rt], pc=instr_raw.pc)
 
 
 

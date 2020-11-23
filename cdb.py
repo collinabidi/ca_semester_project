@@ -77,7 +77,7 @@ class CommonDataBus:
         self.arbiter = Arbiter(self)
 
     # standard heartbeat function
-    def tick(self):
+    def tick(self, tracker):
         self.arbiter.source_poll()
         target_fu = self.arbiter.arbitrate()
 
@@ -85,7 +85,7 @@ class CommonDataBus:
             self.bus_data = self.sources[target_fu].deliver()
 
             for sub in self.subscribers:
-                sub.read_cdb(self.bus_data)
+                sub.read_cdb(self.bus_data, tracker)
 
         else:
             self.bus_data = None
