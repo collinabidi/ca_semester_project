@@ -33,7 +33,6 @@ class RegisterAliasTable:
 
     # fix me to handle PC correctly
     def tick(self, tracker):
-        print("[RAT]: Start Tick.")
         hazard_flag = False
 
         # check for active stall and fetch
@@ -42,10 +41,13 @@ class RegisterAliasTable:
             next_pc = self.func_units["BTB"].fetch_pc()
             if next_pc is None or next_pc >= self.instr_queue.total_instructions*4:
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>> STALL or END <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+                if next_pc is not None:
+                    self.instr_queue.out_of_bounds_hit = True # WE NEVER ACTUALLY VIOLATE THE Prog length. FORCE THE VALUE
                 hazard_flag = True
                 work_instruction = Instruction("NOP")  # Issue Nop
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
+                tracker.update("issue", work_instruction)
                 self.actv_instruction = work_instruction
         else:
             self.func_units["BTB"].fetch_pc(f_stall=True)
@@ -75,7 +77,7 @@ class RegisterAliasTable:
 
             # Update timing table
             print("!ISSUE: {}".format(transformation))
-            tracker.update("issue", transformation)
+            #tracker.update("issue", transformation)
 
 
     # called by ROB to alert that rob_reg is being commited so can be freed
@@ -115,7 +117,7 @@ class RegisterAliasTable:
 
         if instr_raw.type == "i":
             # prevents a stalled instruction from re-translation
-            if "ROB" in instr_raw.rt or instr_raw.op == "Sd":
+            if "ROB" in instr_raw.rt:
                 return instr_raw
 
             if instr_raw.op in ["Bne", "Beq"]:
@@ -123,6 +125,21 @@ class RegisterAliasTable:
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
                 return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
+            elif instr_raw.op == "Sd":
+                rs = self.rat_map[instr_raw.rs]
+                rt = self.rat_map[instr_raw.rt]
+                addr_imm = str(instr_raw.addr_imm)+"("+rs+")"
+                return Instruction([instr_raw.op, rt, addr_imm], pc=instr_raw.pc)
+            elif instr_raw.op == "Addi":
+                # Only used for Addi & Ld
+                print(self.rob)
+                rt = self.rob.enqueue(rob_dict)
+                if rt is None:
+                    return None
+                self.rat_map[instr_raw.rt] = rt
+                rs = self.rat_map[instr_raw.rs]
+                addr_imm = instr_raw.addr_imm
+                return Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)
             else:
                 # Only used for Addi & Ld
                 print(self.rob)

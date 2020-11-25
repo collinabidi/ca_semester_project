@@ -42,14 +42,26 @@ class TimingTable:
 
 
     def __str__(self):
-        output_str = "Issue |  Exe  | Mem  | WB  |  Commit  | Instruction\n"
+        output_str = "Issue | Exe | Memory | WB | Commit | Instruction\n"
         output_str +="-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
         for i in self.tracked_instructions:
-            output_str += str(i["issue"]) + "\t" + str(i["execute"]) + "\t" + \
+            output_str += str(i["issue"]) +"\t"+ str(i["execute"]) +"\t"+ \
                           str(i["memory"]) + "\t" + str(i["wrtback"]) + "\t" + \
                           str(str(i["commit"]) + "\t" + "{}\n".format(i["instr"]))
         output_str +="\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
         return output_str
+
+
+    def file_str(self):
+        output_str = "Iss | Exe | Mem | WB | Cmit | Instruction\n"
+        output_str +="-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
+        for i in self.tracked_instructions:
+            output_str += " "+ str(i["issue"]) +" | "+ str(i["execute"]) +" | "+ \
+                          str(i["memory"]) + " | " + str(i["wrtback"]) + " | " + \
+                          str(str(i["commit"]) + " | " + "{}\n".format(i["instr"]))
+        output_str +="\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
+        return output_str
+
 
 
     def __verify_tx__(self, op, state_c, state_n):

@@ -60,7 +60,7 @@ class LoadStoreQueue:
         # create new queue entry with default value
         enqueue = {"op":instr.op, "qrs":instr.rs, "qrt":instr.rt, \
                    "vrs":None, "vrt":None, "imm":int(instr.addr_imm), \
-                   "countdown":self.cycles_in_mem, "commit":commit_check(instr), \
+                   "countdown":self.cycles_in_mem, "commit":True, \
                    "eff_addr": None, "pc":instr.pc}
 
         enqueue["vrs"] = self.reorder_buffer.request(enqueue["qrs"])
@@ -93,7 +93,6 @@ class LoadStoreQueue:
                 # find first entry w/o eff_addr and set up adder to work
                 entry = self.queue_stations[i]
                 if  entry["vrs"] is not None and entry["eff_addr"] is None:
-                    print("[LSQ] Found " + str(i))
                     self.mem_alu["target"] = i
                     self.mem_alu["countdown"] = self.cycles_in_exe
                     self.mem_alu["busy"] = True
@@ -118,6 +117,7 @@ class LoadStoreQueue:
                 for j in range(i, len(self.queue_stations)):  # look for all following Lds
                     l_instr = self.queue_stations[j]
                     if entry_ld_fwd_ready(l_instr, trgt_addr):
+                        print("ID fwd candidate {}".format(l_instr))
                         l_instr["vrt"] = fwd_val
                         l_instr["countdown"] = self.fwd_cost
 
@@ -125,6 +125,7 @@ class LoadStoreQueue:
         data_fwd_idex = self.queue_sz + 1
             # direct operations
         queue_leader = self.queue_stations[0]
+        print("[LSQ] ENTRY of INTEREST: {}".format(queue_leader))
         if not lsq_fwd_ready(queue_leader): #check for fwd'd value
             if lsq_entry_ready(queue_leader):  #check that this instruction is set to go to memory
                 if queue_leader["countdown"] == 0:  # queue leader has been fully served by memory
@@ -148,8 +149,9 @@ class LoadStoreQueue:
                     # Queue leader was simply served, we must load the next instr. to memory in same cycle
                     if len(self.queue_stations) != 0:  # empty queue check
                         next_leader = self.queue_stations[0]
-                        if not lsq_fwd_ready(next_leader): # we only serve non-fwd'd entries
+                        if not lsq_fwd_ready(next_leader) and lsq_entry_ready(next_leader): # we only serve non-fwd'd entries when ready
                             if next_leader["countdown"] == self.cycles_in_mem:
+                                print("[LSQ] +++ error sd made it here +++ ")
                                 tracker.update("memory", next_leader)
                             next_leader["countdown"] -= 1
 
@@ -172,6 +174,7 @@ class LoadStoreQueue:
                         self.queue_stations.pop(data_fwd_idex)
 
                 else:   # entry got value but must pay transfer penalty
+                    print("[LSQ] ++++ FWD Countdown INITED ++++")
                     if entry["countdown"] == self.fwd_cost:
                         tracker.update("memory", entry)
                     entry["countdown"] -= 1
@@ -184,6 +187,7 @@ class LoadStoreQueue:
 
 
     def mem_commit(self, rob_loc):
+        print("[LSQ] &&& CALLED FOR COMMIT &&&")
         for stat in self.queue_stations:
             if stat["op"] == "Sd":
                 if rob_loc == stat["qrt"]:
@@ -254,7 +258,7 @@ def commit_check(register):
     # return not (register.op == "Sd" and ("ROB" in register.rs))
     if register.op == "Ld":
         return True
-    if "ROB" in register.rs:
+    if "ROB" in register.rt:
         return False
     return True
 
@@ -351,12 +355,12 @@ class Memory:
 
     # prints current contents of memory
     def __str__(self):
-        output = "===Current Memory Configuration===\n"
+        output = "\n\n===Current Memory Configuration===\n"
         for idex in range(len(self.memory)):
             if self.memory[idex] != 0:
                 addr = idex * self.word_len
                 output += "MEM[" + str(addr) + "]="+str(self.memory[idex])+"\t"
-        output += "================================="
+        output += "\n=================================\n"
         return output
 
 """ Prints out the full memory unit contents

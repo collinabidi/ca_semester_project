@@ -1,4 +1,5 @@
 # Main driver and heartbeat code
+import sys
 from RAT import RegisterAliasTable
 from cdb import CommonDataBus
 from functional_units import *
@@ -7,24 +8,21 @@ from reading_input import input_parser
 from time_table import TimingTable
 
 
-# STAND ALONE SYSTEM PRINT & I/O FUNCTIONS
-# These two just print for the moment but they let us pipe to a file etc
-def sys_print(cycle, out_file=None):
-    return
-
-def sys_msg(message):
-    print(message)
-    return
 
 class Processor:
-    def __init__(self, config_file, verbose=False):
+    def __init__(self, config_file, verbose=False, pipe_cd=10):
 
         # Parse input from the configuration file
+        self.output_trgt = config_file
         initr = input_parser(config_file)
 
-        # Initialize components
+        # meta data
         self.cycle_count = 0
+        self.end_cycle = 0
+        self.pipe_cd = pipe_cd
         self.verbose = verbose
+
+        # Initialize components
         self.tracker = TimingTable(self.cycle_count)
         self.instr_buf = InstructionBuffer(config_file)
         self.reg_alias_tbl = RegisterAliasTable(register_qty=16)
@@ -52,9 +50,6 @@ class Processor:
         # Initialize the CDB
         self.CDB = CommonDataBus(self.func_units, cdb_subs)
 
-        if verbose:
-            sys_msg("[PROC] Processor fully init'd")
-
         # finish references to all components still needing it.
         # ==========REGISTER ALIAS TABLE============
         self.reg_alias_tbl.instr_queue = self.instr_buf
@@ -69,12 +64,16 @@ class Processor:
         self.reorder_buf.RAT = self.reg_alias_tbl
         self.reorder_buf.LSQ = self.func_units[0]
 
+        if verbose:
+            print("[PROC] Processor fully init'd")
+
+
     def run_code(self, bp=False):
         # run the heartbeat loop
         if self.verbose:
-            sys_msg(self.instr_buf)
+            print(self.instr_buf)
 
-        while(1):
+        while(self.__continue__(self.pipe_cd)):
             # TIME TABLE PREP
             self.cycle_count += 1
             self.tracker.current_cyc = self.cycle_count
@@ -82,24 +81,23 @@ class Processor:
             # FETCH/DECODE/ISSUE
             self.reg_alias_tbl.tick(self.tracker)
             self.brnch_trnsl_buf.tick(self.tracker)
-
             # EXECUTE
             for unit in self.func_units:
                 unit.tick(self.tracker)
-                #print(unit)
-
+                #if verbose:
+                #   print(unit)
+            if self.verbose:
+                print(self.func_units[0])
             # WRITE BACK
             self.CDB.tick(self.tracker)
-
             # COMMIT
             committed_instruction = self.reorder_buf.tick(self.tracker)
-            print(self.reorder_buf)
+#            if self.verbose:
+#                print(self.reorder_buf)
 
             # Print tracker status
-            print(self.tracker)
-
-            #print system state
-            sys_print(0)
+            if self.verbose:
+                print(self.tracker)
 
             if bp is True:
                 print("===============================================================================================================================")
@@ -107,9 +105,50 @@ class Processor:
                 print("===============================================================================================================================")
                 input("Break Pointing... Press Enter to step\n\n")
 
+        if self.verbose:
+            print("Exiting...")
+        output_str = self.tracker.file_str()
+        output_str += "\n\n===Register Values===\n"
+        output_str += str(self.reorder_buf.int_arf)+"\n"+str(self.reorder_buf.fp_arf)
+        output_str += str(self.reg_alias_tbl.func_units["LSQ"].mem_unit)
+        file_nm = self.output_trgt.split(".")
+
+        with open((file_nm[0]+"_output.txt"), "w") as out_file:
+            out_file.write("Processor Execution Output:\n")
+            out_file.write(output_str)
+            out_file.close()
+
+
+    def __continue__(self, flush_cycs):
+        trigger = self.reorder_buf.rob_empty and self.instr_buf.out_of_bounds_hit
+        flush = False
+        if self.end_cycle == 0 and trigger:
+            self.end_cycle = self.cycle_count
+        else:
+            flush = self.cycle_count >= (self.end_cycle + flush_cycs)
+        #print("[CONTINUE] rob:" + str(self.reorder_buf.rob_empty) + " i_buf:"+str(self.instr_buf.out_of_bounds_hit)+ " end:"+str(self.end_cycle)+ "cyc:"+str(self.cycle_count) + " flush:"+ str(flush))
+        return not (trigger and flush)
+
 
 
 if __name__ == "__main__":
     # decode command line args
-    my_processor = Processor("test_files/test5a.txt", verbose=True)
-    my_processor.run_code(bp=True)
+    if len(sys.argv) < 3 or len(sys.argv) > 5:
+        print("Usage: python processor.py --input <filename> [--bp] [--clr=#]")
+        print("--input <filename> is required, --bp/--clr are optional")
+        print("--bp enables cycle breakpointing")
+        print("--clr=# sets the amount of flush time ")
+    else:
+        debug = False
+        pipe_cd = 10
+        if len(sys.argv) > 3:
+            for i in range(3,len(sys.argv)):
+                if sys.argv[i] == "--bp":
+                    debug = True
+                elif "--clr" in sys.argv[i]:
+                    clr_vals = sys.argv[i].split("=")
+                    pipe_cd = int(clr_vals[1])
+
+        #init and run
+        my_processor = Processor(sys.argv[2], verbose=debug, pipe_cd=pipe_cd)
+        my_processor.run_code(bp=debug)

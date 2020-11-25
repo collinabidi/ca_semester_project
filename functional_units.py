@@ -45,7 +45,6 @@ class Instruction():
                     self.rs = args[2].strip(",")
                     self.addr_imm = args[3].strip(",")
                 elif args[0] in ["Ld","Sd"]:
-                    print("[INSTR] " + str(args[2]))
                     self.rs = args[2].split("(")[1].strip(")")
                     self.addr_imm = float(args[2].split("(")[0])
                 elif args[0] in ["Addi"]:
@@ -84,6 +83,7 @@ class InstructionBuffer:
             self.instruction_list[i] = Instruction(inst.strip("\n").strip(",").split(" "), pc=i*4)
         self.index = 0
         self.total_instructions = len(self.instruction_list)
+        self.out_of_bounds_hit = False
 
     def fetch(self, pc):
         """ Get the next instruction from the buffer
@@ -91,6 +91,7 @@ class InstructionBuffer:
         # If we reach the end of the instructions, return a NOP
         if pc == 4*len(self.instruction_list):
             print("NO MORE INSTRUCTIONS!")
+            self.out_of_bounds_hit = True
             return Instruction(["NOP"])
 
         return self.instruction_list[int(pc / 4)]
@@ -511,6 +512,7 @@ class ROB:
             self.rob[i] = {"tag":"ROB{}".format(i+1),"op":None, "dest":None, "value":None, "finished":False, "instruction":None}
         self.front = -1
         self.rear = -1
+        self.rob_empty = True
         self.LSQ = None
         self.RAT = None
 
@@ -554,6 +556,7 @@ class ROB:
         """ Add an entry to the ROB, formatted as
             {"op": Add|Add.d|Sub|Sub.d|Mult.d|Ld|Sd|Beq|Bne, "dest":Destination, "instruction":Instruction}
         """
+        self.rob_empty = False
         if ((self.rear + 1) % self.num_entries == self.front):
             print("ROB is full!")
             return None
@@ -577,6 +580,7 @@ class ROB:
         if self.front == -1:
             print("ROB is empty")
         elif self.front == self.rear:
+            self.rob_empty = True
             temp = self.rob[self.front]
             self.front = -1
             self.rear = -1

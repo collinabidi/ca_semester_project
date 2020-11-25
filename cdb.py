@@ -83,7 +83,7 @@ class CommonDataBus:
 
         if target_fu is not None:
             self.bus_data = self.sources[target_fu].deliver()
-
+            print("[DATA BUS] tranfer: {}".format(self.bus_data))
             for sub in self.subscribers:
                 sub.read_cdb(self.bus_data, tracker)
 
