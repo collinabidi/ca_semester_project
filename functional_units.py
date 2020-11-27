@@ -429,7 +429,7 @@ class IntegerAdder:
                 answer = int(self.reservation_stations[self.current_tag]["vj"]) + int(self.reservation_stations[self.current_tag]["vk"])
             else:
                 # Sub OR Bne OR Beq
-                answer = int(self.reservation_stations[self.current_tag]["vj"]) - int(self.reservation_stations[self.current_tag]["vk"])
+                answer = int(self.reservation_stations[self.current_tag]["vk"]) - int(self.reservation_stations[self.current_tag]["vj"])
 
             self.reservation_stations[self.current_tag]["value"] = answer
             # Put answer on result_buffer
