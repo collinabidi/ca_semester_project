@@ -85,15 +85,16 @@ class Processor:
             for unit in self.func_units:
                 unit.tick(self.tracker)
                 #if verbose:
-                #   print(unit)
+            print(self.func_units[3])
             if self.verbose:
                 print(self.func_units[0])
             # WRITE BACK
             self.CDB.tick(self.tracker)
+            print(self.CDB)
             # COMMIT
             committed_instruction = self.reorder_buf.tick(self.tracker)
-#            if self.verbose:
-#                print(self.reorder_buf)
+            if self.verbose:
+                print(self.reorder_buf)
 
             # Print tracker status
             if self.verbose:

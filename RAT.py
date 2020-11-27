@@ -2,7 +2,8 @@ from functional_units import *
 
 
 class RegisterAliasTable:
-    def __init__(self, register_qty=16):
+    def __init__(self, register_qty=16, verbose=False):
+        self.verbose = verbose
         self.rat_map = {}  # Map of ARF registers to ARF/ROB registers
         self.routing_tbl = {} # Map of instructions to func_units
         self.actv_instruction = None # instruction being worked on or stalled
@@ -105,7 +106,6 @@ class RegisterAliasTable:
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
         #  then remaps registers from current table
-        print("[RAT] Translating: " + str(instr_raw))
         if instr_raw.type not in ["r", "i"]:
             return instr_raw
 
@@ -133,21 +133,22 @@ class RegisterAliasTable:
             elif instr_raw.op == "Addi":
                 # Only used for Addi & Ld
                 print(self.rob)
-                rt = self.rob.enqueue(rob_dict)
+                rs = self.rat_map[instr_raw.rs]  #assign source register
+                rt = self.rob.enqueue(rob_dict)  #retrieve dest register
                 if rt is None:
                     return None
-                self.rat_map[instr_raw.rt] = rt
-                rs = self.rat_map[instr_raw.rs]
+                self.rat_map[instr_raw.rt] = rt # remap source register
                 addr_imm = instr_raw.addr_imm
+                print("[RAT] Translate >>> Input {} | Output {}".format(instr_raw, Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)
             else:
-                # Only used for Addi & Ld
+                # Only used for Ld bc Instruction args are different
                 print(self.rob)
+                rs = self.rat_map[instr_raw.rs]
                 rt = self.rob.enqueue(rob_dict)
                 if rt is None:
                     return None
                 self.rat_map[instr_raw.rt] = rt
-                rs = self.rat_map[instr_raw.rs]
                 addr_imm = instr_raw.addr_imm
                 imm_rs = str(addr_imm)+"("+rs+")"
                 return Instruction([instr_raw.op, rt, imm_rs], pc=instr_raw.pc)

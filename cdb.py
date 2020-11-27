@@ -83,7 +83,6 @@ class CommonDataBus:
 
         if target_fu is not None:
             self.bus_data = self.sources[target_fu].deliver()
-            print("[DATA BUS] tranfer: {}".format(self.bus_data))
             for sub in self.subscribers:
                 sub.read_cdb(self.bus_data, tracker)
 
@@ -106,7 +105,13 @@ class CommonDataBus:
     def rewind(self):
         self.reset()
 
-
+    def __str__(self):
+        val = None
+        if self.bus_data is None:
+            val = "No source requested transfer."
+        else:
+            val = self.bus_data
+        return "\n>>> Common Data Bus - Broadcast >>> {}\n".format(val)
 
 # Debug class / script
 class test_fu:
