@@ -125,7 +125,7 @@ class LoadStoreQueue:
         data_fwd_idex = self.queue_sz + 1
             # direct operations
         queue_leader = self.queue_stations[0]
-        print("[LSQ] ENTRY of INTEREST: {}".format(queue_leader))
+        #print("[LSQ] ENTRY of INTEREST: {}".format(queue_leader))
         if not lsq_fwd_ready(queue_leader): #check for fwd'd value
             if lsq_entry_ready(queue_leader):  #check that this instruction is set to go to memory
                 if queue_leader["countdown"] == 0:  # queue leader has been fully served by memory
@@ -151,7 +151,6 @@ class LoadStoreQueue:
                         next_leader = self.queue_stations[0]
                         if not lsq_fwd_ready(next_leader) and lsq_entry_ready(next_leader): # we only serve non-fwd'd entries when ready
                             if next_leader["countdown"] == self.cycles_in_mem:
-                                print("[LSQ] +++ error sd made it here +++ ")
                                 tracker.update("memory", next_leader)
                             next_leader["countdown"] -= 1
 
@@ -174,7 +173,6 @@ class LoadStoreQueue:
                         self.queue_stations.pop(data_fwd_idex)
 
                 else:   # entry got value but must pay transfer penalty
-                    print("[LSQ] ++++ FWD Countdown INITED ++++")
                     if entry["countdown"] == self.fwd_cost:
                         tracker.update("memory", entry)
                     entry["countdown"] -= 1
@@ -187,7 +185,7 @@ class LoadStoreQueue:
 
 
     def mem_commit(self, rob_loc):
-        print("[LSQ] &&& CALLED FOR COMMIT &&&")
+        print("[LSQ] &&& CALLED FOR COMMIT at : {}".format(rob_loc))
         for stat in self.queue_stations:
             if stat["op"] == "Sd":
                 if rob_loc == stat["qrt"]:
@@ -211,7 +209,7 @@ class LoadStoreQueue:
         self.result_buffer = []
         self.rb_history = None
         self.lsq_history = None
-        self.mem_alu = {"target":-1, "busy":False,"countdown":None}
+        self.mem_alu = {"target":-1, "busy":False, "countdown":None}
         if mem_reset:
             self.mem_unit.reset()
 

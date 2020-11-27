@@ -13,13 +13,6 @@ Addi R1, R6, 2
 Sd R1, 10(R6)
 Ld R2, 8(R6)
 Beq R2, R6, 11
-Ld F3, 12(R6)
-Ld R4, 14(R6)
-Addi R4, R4, 1
-Mult.d F3, F3, F2
-Sub.d F2, F2, F4
 Sub R1, R1, R5
-Sd F3, 12(R6)
-Sd R4, 14(R6)
-Bne R1, R6, -7
+Bne R1, R6, -1
 Add.d F4, F3, F5
