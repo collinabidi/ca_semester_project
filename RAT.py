@@ -7,6 +7,12 @@ class RegisterAliasTable:
         self.rat_map = {}  # Map of ARF registers to ARF/ROB registers
         self.routing_tbl = {} # Map of instructions to func_units
         self.actv_instruction = None # instruction being worked on or stalled
+        self.int_adder_counter = 0  # Counter to distribute int_adder instructions equally
+        self.fp_adder_counter = 0   # Counter to distribute fp_adder instructions equally
+        self.fp_mult_counter = 0    # Counter to distribute fp_mult instructions equally
+        self.num_int_adders = 0
+        self.num_fp_adders = 0
+        self.num_fp_mults = 0
 
         self.instr_queue = None      # reference to Instruction Buffer
         self.rob = None              # reference to Reorder Buffer
@@ -66,7 +72,50 @@ class RegisterAliasTable:
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
-        push_result = self.func_units[target_fu].issue(transformation)
+        
+        # Pick the next (appropriate) non-full functional unit
+        print("NUM INT ADDERS: {}".format(self.num_int_adders))
+        if target_fu == "INT":
+            starting_unit = self.int_adder_counter
+            exit_flag = False
+            while not exit_flag:
+                push_result = self.func_units[target_fu][self.int_adder_counter].issue(transformation)
+                if type(push_result) == Warning:
+                    self.int_adder_counter = (self.int_adder_counter + 1) % (self.num_int_adders)
+                    if self.int_adder_counter == starting_unit:
+                        print("ALL FUs ARE FULL!!!")
+                        exit_flag = True
+                else:
+                    self.int_adder_counter = (self.int_adder_counter + 1) % (self.num_int_adders)
+                    exit_flag = True              
+        elif target_fu == "FPA":
+            starting_unit = self.fp_adder_counter
+            exit_flag = False
+            while not exit_flag:
+                push_result = self.func_units[target_fu][self.fp_adder_counter].issue(transformation)
+                if type(push_result) == Warning:
+                    self.fp_adder_counter = (self.fp_adder_counter + 1) % (self.num_fp_adders)
+                    if self.fp_adder_counter == starting_unit:
+                        print("ALL FP ADDERS ARE FULL!!!")
+                        exit_flag = True
+                else:
+                    self.fp_adder_counter = (self.fp_adder_counter + 1) % (self.num_fp_adders)
+                    exit_flag = True 
+        elif target_fu == "FPM":
+            starting_unit = self.fp_mult_counter
+            exit_flag = False
+            while not exit_flag:
+                push_result = self.func_units[target_fu][self.fp_mult_counter].issue(transformation)
+                if type(push_result) == Warning:
+                    self.fp_mult_counter = (self.fp_mult_counter + 1) % (self.num_fp_mults)
+                    if self.fp_mult_counter == starting_unit:
+                        print("ALL FP MULTIPLIERS ARE FULL!!!")
+                        exit_flag = True
+                else:
+                    self.fp_mult_counter = (self.fp_mult_counter + 1) % (self.num_fp_mults)
+                    exit_flag = True
+        else:
+            push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
         if type(push_result) is not Warning and hazard_flag == False:
@@ -188,7 +237,7 @@ class RegisterAliasTable:
                            "LSQ":None,
                            "BTB":None}
 
-        for i in range(num_arf):
+        for i in range(1,num_arf+1):
             self.rat_map["R"+str(i)] = "R"+str(i)
             self.rat_map["F"+str(i)] = "F"+str(i)
 

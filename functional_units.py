@@ -271,6 +271,7 @@ class FPAdder:
 
         if self.num_filled_stations == self.size:
             print("FP Adder {} is now full!".format(self.fu_number))
+        return None
 
     def deliver(self):
         return self.result_buffer.pop(0)
@@ -407,7 +408,7 @@ class IntegerAdder:
 
         if self.num_filled_stations == self.size:
             print("Integer Adder {} is full!".format(self.fu_number))
-        return self.num_filled_stations == self.size
+        return None
 
     def tick(self, tracker):
         """ Go forward once cycle and perform calculations. Add a waiting instruction to be executed. If a station is done, put result on output buffer
@@ -704,11 +705,11 @@ class BTB:
             print(">>>>>>>>>>>> SAVE STATE <<<<<<<<<<<<")
             self.rob.save_state()
             self.rat.save_state()
-            for int_adder in self.int_adders:
+            for _, int_adder in self.int_adders.items():
                 int_adder.save_state()
-            for fp_adder in self.fp_adders:
+            for _, fp_adder in self.fp_adders.items():
                 fp_adder.save_state()
-            for fp_multiplier in self.fp_multipliers:
+            for _, fp_multiplier in self.fp_multipliers.items():
                 fp_multiplier.save_state()
             self.rs = instruction.rs
             self.rt = instruction.rt

@@ -32,19 +32,19 @@ class Processor:
         # Register all functional units
         self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], initr.LSU["cie"], self.reorder_buf, initr.CBDe, wl=1, config=initr.memory)]
 
-        # Initialize multiple FUs and register
-        int_adders = [0] * initr.intA["nfu"]
-        for i in range(1,initr.intA["nfu"]+1):
-            int_adders[i-1] = IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), i, self.reorder_buf)
-            self.func_units.append(int_adders[i-1])
-        fp_adders = [0] * initr.FPA["nfu"]
-        for i in range(1, initr.FPA["nfu"]+1):
-            fp_adders[i-1] = FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), i, self.reorder_buf)
-            self.func_units.append(fp_adders[i-1])
-        fp_mults = [0] * initr.FPM["nfu"]
-        for i in range(1, initr.FPM["nfu"]+1):
-            fp_mults[i-1] = FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), i, self.reorder_buf)
-            self.func_units.append(fp_mults[i-1])
+        # Initialize and register multiple FUs
+        int_adders = {}
+        for i in range(int(initr.intA["nfu"])):
+            int_adders[i] = IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), i, self.reorder_buf)
+            self.func_units.append(int_adders[i])
+        fp_adders = {}
+        for i in range(int(initr.FPA["nfu"])):
+            fp_adders[i] = FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), i, self.reorder_buf)
+            self.func_units.append(fp_adders[i])
+        fp_mults = {}
+        for i in range(int(initr.FPM["nfu"])):
+            fp_mults[i] = FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), i, self.reorder_buf)
+            self.func_units.append(fp_mults[i])
 
         # Initialize BTB
         # TODO: Pass a list of all IntAdders, FPAdders, FPMultipliers
@@ -68,6 +68,9 @@ class Processor:
         self.reg_alias_tbl.func_units["FPM"] = fp_mults
         self.reg_alias_tbl.func_units["INT"] = int_adders
         self.reg_alias_tbl.func_units["BTB"] = self.brnch_trnsl_buf
+        self.reg_alias_tbl.num_int_adders = int(initr.intA["nfu"])
+        self.reg_alias_tbl.num_fp_adders = int(initr.FPA["nfu"])
+        self.reg_alias_tbl.num_fp_mults = int(initr.FPM["nfu"])
 
         # ========== REORDER BUFFER =============
         self.reorder_buf.RAT = self.reg_alias_tbl
@@ -93,8 +96,11 @@ class Processor:
             # EXECUTE
             for unit in self.func_units:
                 unit.tick(self.tracker)
+                #print(unit)
                 #if verbose:
-            print(self.func_units[3])
+            #print(self.func_units[3])
+            for _, adder in self.reg_alias_tbl.func_units["INT"].items():
+                print(adder)
             if self.verbose:
                 print(self.func_units[0])
             # WRITE BACK
