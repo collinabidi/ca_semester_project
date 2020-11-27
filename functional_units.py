@@ -142,7 +142,6 @@ class FPMultiplier:
         # Check if there's enough room in the reservation stations
         print("Issue inside of FPMULT")
         if self.num_filled_stations >= self.size:
-            print(">>>>>>>>>>>>>>>>FP MULTIPLIER FULL")
             return Warning("Reservation Station of FPMultiplier {} is full".format(self.fu_number))
         else:
             # Generate tag and fill station
@@ -171,7 +170,6 @@ class FPMultiplier:
                 if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == self.cycles_in_ex and new_instruction_began != True:
                     instruction["countdown"] -= 1
                     new_instruction_began = True
-                    print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
                     tracker.update("execute", {"pc":instruction["instruction"].pc})
                 elif self.last_issued == tag:
                     self.last_issued = None
@@ -283,15 +281,10 @@ class FPAdder:
         # Let ready instructions operate
         new_instruction_began = False
         for tag, instruction in self.reservation_stations.items():
-            print("\tTAG: {}".format(tag))
-            print("\tLAST ISSUED: {}".format(self.last_issued))
-            print("\tTag != Last Issued: {}".format(self.last_issued != tag))
             if tag != self.last_issued:
                 if instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] == self.cycles_in_ex and new_instruction_began != True:
-                    print("Beginning countdown")
                     instruction["countdown"] -= 1
                     new_instruction_began = True
-                    print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
                     tracker.update("execute", {"pc":instruction["instruction"].pc})
                 elif instruction["vj"] != None and instruction["vk"] != None and instruction["countdown"] < self.cycles_in_ex and instruction["countdown"] != 0:
                     instruction["countdown"] -= 1
@@ -742,9 +735,10 @@ class BTB:
         """
         if self.correct is None:
             if self.branch_entry == -1 and not self.f_stall:
+                print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
-            elif self.branch_entry != -1 and self.f_stall:
-                print("Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
+            elif self.branch_entry != -1 or self.f_stall:
+                print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc
 
         elif self.correct is False:
@@ -755,11 +749,11 @@ class BTB:
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
             if self.actual_result == True:
-                print("Actually Taken")
+                print("****** Actually Taken")
                 self.new_pc = self.predicted_pc - 4
             else:
-                print("Actually Not Taken")
-                self.new_pc = self.new_pc
+                print("****** Actually Not Taken")
+                self.new_pc = self.new_pc + 4
             self.actual_result = None
             # Call rewind on all relevant units
             """
