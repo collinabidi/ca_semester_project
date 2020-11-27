@@ -293,7 +293,7 @@ class FPAdder:
                     if instruction["op"] == "Add.d":
                         answer = float(self.reservation_stations[tag]["vj"]) + float(self.reservation_stations[tag]["vk"])
                     else:
-                        answer = float(self.reservation_stations[tag]["vj"]) - float(self.reservation_stations[tag]["vk"])
+                        answer = float(self.reservation_stations[tag]["vk"]) - float(self.reservation_stations[tag]["vj"])
 
                     self.reservation_stations[tag]["value"] = answer
                     self.result_buffer.append({"dest":self.reservation_stations[tag]["dest"],"value":answer,"op":self.reservation_stations[tag]["op"]})
