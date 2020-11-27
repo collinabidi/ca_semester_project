@@ -605,9 +605,9 @@ class ROB:
                 self.int_arf[entry["dest"]] = entry["value"]
             self.RAT.commit_update(entry["tag"])
 
-    def mem_commit(self, register_name):
-        if register_name["op"] in ["Sd", "Ld"]:
-            self.LSQ.mem_commit(register_name["tag"])
+    def mem_commit(self, entry):
+        if entry["op"] in ["Sd", "Ld"]:
+            self.LSQ.mem_commit(entry["tag"])
 
     def request(self, register_name):
         if "ROB" in register_name:

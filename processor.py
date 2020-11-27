@@ -30,17 +30,26 @@ class Processor:
         self.reorder_buf.register_arfs(initr.ARFI, initr.ARFF)
 
         # Register all functional units
-        # TODO: Multiple FUs
-        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], initr.LSU["cie"], self.reorder_buf, initr.CBDe, wl=1, config=initr.memory),
-                           FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), int(initr.FPA["nfu"]), self.reorder_buf),
-                           FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), int(initr.FPM["nfu"]), self.reorder_buf),
-                           IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), int(initr.intA["nfu"]), self.reorder_buf) ]
+        self.func_units = [LoadStoreQueue(256, initr.LSU["nrg"], initr.LSU["cim"], initr.LSU["cie"], self.reorder_buf, initr.CBDe, wl=1, config=initr.memory)]
+
+        # Initialize multiple FUs and register
+        int_adders = [0] * initr.intA["nfu"]
+        for i in range(1,initr.intA["nfu"]+1):
+            int_adders[i-1] = IntegerAdder(int(initr.intA["nrg"]), int(initr.intA["cie"]), i, self.reorder_buf)
+            self.func_units.append(int_adders[i-1])
+        fp_adders = [0] * initr.FPA["nfu"]
+        for i in range(1, initr.FPA["nfu"]+1):
+            fp_adders[i-1] = FPAdder(int(initr.FPA["nrg"]), int(initr.FPA["cie"]), i, self.reorder_buf)
+            self.func_units.append(fp_adders[i-1])
+        fp_mults = [0] * initr.FPM["nfu"]
+        for i in range(1, initr.FPM["nfu"]+1):
+            fp_mults[i-1] = FPMultiplier(int(initr.FPM["nrg"]), int(initr.FPM["cie"]), i, self.reorder_buf)
+            self.func_units.append(fp_mults[i-1])
 
         # Initialize BTB
         # TODO: Pass a list of all IntAdders, FPAdders, FPMultipliers
         self.brnch_trnsl_buf = BTB(self.reorder_buf, self.reg_alias_tbl,
-                                   [self.func_units[3]], [self.func_units[1]],
-                                   [self.func_units[2]])
+                                   int_adders, fp_adders, fp_mults)
 
         # Specify which units subscribe to the CDB
         cdb_subs = [self.brnch_trnsl_buf, self.reorder_buf]
@@ -55,9 +64,9 @@ class Processor:
         self.reg_alias_tbl.instr_queue = self.instr_buf
         self.reg_alias_tbl.rob = self.reorder_buf
         self.reg_alias_tbl.func_units["LSQ"] = self.func_units[0]
-        self.reg_alias_tbl.func_units["FPA"] = self.func_units[1]
-        self.reg_alias_tbl.func_units["FPM"] = self.func_units[2]
-        self.reg_alias_tbl.func_units["INT"] = self.func_units[3]
+        self.reg_alias_tbl.func_units["FPA"] = fp_adders
+        self.reg_alias_tbl.func_units["FPM"] = fp_mults
+        self.reg_alias_tbl.func_units["INT"] = int_adders
         self.reg_alias_tbl.func_units["BTB"] = self.brnch_trnsl_buf
 
         # ========== REORDER BUFFER =============
