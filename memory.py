@@ -190,6 +190,11 @@ class LoadStoreQueue:
             if rob_loc == stat["rob_ptr"]:
                 stat["commit"] = True
 
+    def check_mem_commit(self, rob_loc):
+        q_lead = self.queue_stations[0]
+        if queue_leader["rob_ptr"] == rob_loc:
+            return q_lead["eff_addr"] is not None and q_lead["vrt"] is not None
+        return False
 
     def read_cdb(self, bus_data, tracker=None):
         if bus_data is None:

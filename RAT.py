@@ -6,6 +6,7 @@ class RegisterAliasTable:
         self.verbose = verbose
         self.rat_map = {}  # Map of ARF registers to ARF/ROB registers
         self.routing_tbl = {} # Map of instructions to func_units
+        self.sd_rob_ptr = None # register to hold ROB assignment for Sd instr's
         self.actv_instruction = None # instruction being worked on or stalled
         self.int_adder_counter = 0  # Counter to distribute int_adder instructions equally
         self.fp_adder_counter = 0   # Counter to distribute fp_adder instructions equally
@@ -23,6 +24,7 @@ class RegisterAliasTable:
 
         self.rat_map_history = {}
 
+
     def __str__(self):
         output_string = "============== RAT =====================\n"
         output_string += "Entry\tValue\t|\tEntry\tValue\n"
@@ -37,6 +39,7 @@ class RegisterAliasTable:
             i += 1
         output_string += "========================================\n"
         return output_string
+
 
     # fix me to handle PC correctly
     def tick(self, tracker):
@@ -72,7 +75,7 @@ class RegisterAliasTable:
 
         # ID target func_unit and attempt to push instruction
         target_fu = self.routing_tbl[transformation.op]
-        
+
         # Pick the next (appropriate) non-full functional unit
         print("NUM INT ADDERS: {}".format(self.num_int_adders))
         if target_fu == "INT":
@@ -87,7 +90,7 @@ class RegisterAliasTable:
                         exit_flag = True
                 else:
                     self.int_adder_counter = (self.int_adder_counter + 1) % (self.num_int_adders)
-                    exit_flag = True              
+                    exit_flag = True
         elif target_fu == "FPA":
             starting_unit = self.fp_adder_counter
             exit_flag = False
@@ -100,7 +103,7 @@ class RegisterAliasTable:
                         exit_flag = True
                 else:
                     self.fp_adder_counter = (self.fp_adder_counter + 1) % (self.num_fp_adders)
-                    exit_flag = True 
+                    exit_flag = True
         elif target_fu == "FPM":
             starting_unit = self.fp_mult_counter
             exit_flag = False
@@ -115,11 +118,15 @@ class RegisterAliasTable:
                     self.fp_mult_counter = (self.fp_mult_counter + 1) % (self.num_fp_mults)
                     exit_flag = True
         else:
-            push_result = self.func_units[target_fu].issue(transformation)
+            if transformation.op == "Sd":
+                push_result = self.func_units[target_fu].issue(transformation, sd_rob=self.sd_rob_ptr)
+            else:
+                push_result = self.func_units[target_fu].issue(transformation)
 
         # if pushed, clear the held instruction
         if type(push_result) is not Warning and hazard_flag == False:
             self.actv_instruction = None
+            self.sd_rob_ptr = None
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb
                 #  route_tbl pushed it to INT for evaluation
@@ -166,7 +173,7 @@ class RegisterAliasTable:
 
         if instr_raw.type == "i":
             # prevents a stalled instruction from re-translation
-            if "ROB" in instr_raw.rt:
+            if "ROB" in instr_raw.rt or self.sd_rob_ptr is not None:
                 return instr_raw
 
             if instr_raw.op in ["Bne", "Beq"]:
@@ -175,6 +182,9 @@ class RegisterAliasTable:
                 addr_imm = instr_raw.addr_imm
                 return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
             elif instr_raw.op == "Sd":
+                self.sd_rob_ptr = self.rob.enqueue(rob_dict)
+                if self.sd_rob_ptr is None:
+                    return None
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = str(instr_raw.addr_imm)+"("+rs+")"
