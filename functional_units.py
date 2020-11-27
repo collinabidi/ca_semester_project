@@ -499,8 +499,8 @@ class IntegerAdder:
 class ROB:
     def __init__(self, num_rob_entries, int_arf, fp_arf):
         self.num_entries = num_rob_entries
-        self.int_arf = {"R{}".format(i):0 for i in range(1,int_arf)}
-        self.fp_arf = {"F{}".format(i):0.0 for i in range(1,fp_arf)}
+        self.int_arf = {"R{}".format(i):0 for i in range(0,int_arf)}
+        self.fp_arf = {"F{}".format(i):0.0 for i in range(0,fp_arf)}
         self.rob = [0] * num_rob_entries
         for i in range(num_rob_entries):
             self.rob[i] = {"tag":"ROB{}".format(i+1),"op":None, "dest":None, "value":None, "finished":False, "instruction":None}
@@ -529,7 +529,6 @@ class ROB:
 
     def tick(self, tracker):
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
-        #print("ROB Instruction in the front: {}".format(self.rob[self.front]))
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
             if self.last_wb != entry["tag"]:
@@ -545,6 +544,9 @@ class ROB:
                     return self.dequeue()
             else:
                 self.last_wb = None
+        for entry in [e for e in self.rob if e["op"] == "Sd"]:
+            if value != None:
+                entry["finished"] = True
 
     def enqueue(self, entry):
         """ Add an entry to the ROB, formatted as
@@ -637,6 +639,9 @@ class ROB:
         for key, value in fp_arf.items():
             #print("Registering {} - {}".format(key, value))
             self.fp_arf[key] = value
+        
+        # Register un-writeable R0
+        self.int_arf["R0"] = 0
 
         print("INT ARF: {}\nFP ARF: {}".format(self.int_arf, self.fp_arf))
 
