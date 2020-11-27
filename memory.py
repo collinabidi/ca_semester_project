@@ -53,15 +53,15 @@ class LoadStoreQueue:
         self.reorder_buffer = rob
 
 
-    def issue(self, instr):
+    def issue(self, instr, sd_rob=None):
         if self.num_stats_free == 0:
             return Warning("Warning! Queue is unable to accept instruction.")
 
         # create new queue entry with default value
         enqueue = {"op":instr.op, "qrs":instr.rs, "qrt":instr.rt, \
                    "vrs":None, "vrt":None, "imm":int(instr.addr_imm), \
-                   "countdown":self.cycles_in_mem, "commit":True, \
-                   "eff_addr": None, "pc":instr.pc}
+                   "countdown":self.cycles_in_mem, "commit":commit_check(instr), \
+                   "eff_addr": None, "pc":instr.pc, "rob_ptr":sd_rob}
 
         enqueue["vrs"] = self.reorder_buffer.request(enqueue["qrs"])
         enqueue["vrt"] = self.reorder_buffer.request(enqueue["qrt"])
@@ -185,11 +185,10 @@ class LoadStoreQueue:
 
 
     def mem_commit(self, rob_loc):
-        print("[LSQ] &&& CALLED FOR COMMIT at : {}".format(rob_loc))
         for stat in self.queue_stations:
-            if stat["op"] == "Sd":
-                if rob_loc == stat["qrt"]:
-                    stat["commit"] = True
+            # if committed ROB entry matches q entry ROB ptr, permission given to go to mem on entry
+            if rob_loc == stat["rob_ptr"]:
+                stat["commit"] = True
 
 
     def read_cdb(self, bus_data, tracker=None):
@@ -253,12 +252,7 @@ class LoadStoreQueue:
 # stand alone rule about commit readiness
 def commit_check(register):
     # we only avoid default commit if we are waiting on the action from the ROB
-    # return not (register.op == "Sd" and ("ROB" in register.rs))
-    if register.op == "Ld":
-        return True
-    if "ROB" in register.rt:
-        return False
-    return True
+    return not (register.op == "Sd")
 
 
 # stand alone rule about LSQ entry readiness for head of queue
@@ -274,12 +268,12 @@ def lsq_entry_ready(entry):
     return False
 
 
-# stand alone rule about LSQ entry forward-readiness
+# tests if an entry is ready to pre-preemptively exit the queue
 def lsq_fwd_ready(entry):
     if entry["op"] == "Sd":
         # never forward a store instruction out of queue
         return False
-    # if the address and the value are in the station, action was forwarded, instr can leave queue
+    # if address and value are in entry, action was forwarded, Ld can leave queue
     return entry["eff_addr"] is not None and entry["vrt"] is not None
 
 
