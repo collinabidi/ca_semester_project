@@ -597,7 +597,7 @@ class ROB:
                 self.last_wb = entry["tag"]
 
     def commit(self, entry):
-        if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
+        if entry["finished"] and entry["op"] not in ["Sd"]:
             if "F" in entry["dest"]:
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
@@ -606,6 +606,12 @@ class ROB:
 
     def mem_commit(self, entry):
         if entry["op"] in ["Sd", "Ld"]:
+            if entry["op"] == "Ld":
+                if "F" in entry["dest"]:
+                    self.fp_arf[entry["dest"]] = entry["value"]
+                elif "R" in entry["dest"]:
+                    self.int_arf[entry["dest"]] = entry["value"]
+                self.RAT.commit_update(entry["tag"])
             self.LSQ.mem_commit(entry["tag"])
 
     def request(self, register_name):
