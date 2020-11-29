@@ -1,0 +1,22 @@
+# of rs	Cycles in EX	Cycles in Mem	# of FUs
+Integer adder	3	2	0	1
+FP adder	3	3	0	1
+FP multiplier	2	10	0	1
+Load/store unit	3	1	2	1
+
+ROB entries = 128
+CDB buffer entries = 1
+F2=2.0, F3=3.0, F4=4.0
+Mem[8]=1, Mem[10]=0
+
+Ld R4, 8(R0)
+Addi R1, R0, 1
+Addi R2, R0, 2
+Addi R3, R0, 3
+Bne R1, R4, 1
+Mult.d F1, F2, F2
+Bne R2, R4, 1
+Mult.d F1, F3, F3
+Bne R3, R4, 1
+Mult.d F1, F4, F4
+Sd F1, 10(R0)
