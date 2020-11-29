@@ -507,6 +507,7 @@ class ROB:
         self.front = -1
         self.rear = -1
         self.rob_empty = True
+        self.last_wb = None
         self.LSQ = None
         self.RAT = None
 
@@ -528,6 +529,12 @@ class ROB:
         return output_string
 
     def tick(self, tracker):
+        # Special case: Sd needs to check the LSQ to set it's finished status
+        if self.rob[self.front]["op"] == "Sd":
+            if self.LSQ.check_mem_commit(self.rob[self.front]["tag"]) == True:
+                print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
+                self.rob[self.front]["finished"] = True
+
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
@@ -544,9 +551,6 @@ class ROB:
                     return self.dequeue()
             else:
                 self.last_wb = None
-        for entry in [e for e in self.rob if e["op"] == "Sd"]:
-            if value != None:
-                entry["finished"] = True
 
     def enqueue(self, entry):
         """ Add an entry to the ROB, formatted as
