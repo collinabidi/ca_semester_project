@@ -1,6 +1,6 @@
 # of rs	Cycles in EX	Cycles in Mem	# of FUs
 Integer adder	3	2	0	1
-FP adder	3	3	0	1
+FP adder	3	2	0	1
 FP multiplier	3	10	0	1
 Load/store unit	3	1	2	1
 
@@ -10,7 +10,4 @@ F1=1.0, F2=2.0, F3=3.0, F4=4.0, F5=5.0, F7=7.0, F8=8.0, F9=9.0, F10=10.0, F11=11
 Mem[4]=4, Mem[8]=8
 
 Mult.d F1, F2, F3
-Mult.d F2, F4, F5
-Mult.d F6, F7, F8
-Mult.d F9, F10, F11
-Mult.d F12, F13, F14
+Add.d F1, F2, F3

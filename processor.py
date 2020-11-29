@@ -156,7 +156,7 @@ if __name__ == "__main__":
         print("--clr=# sets the amount of flush time ")
     else:
         debug = False
-        pipe_cd = 10
+        pipe_cd = 5
         if len(sys.argv) > 3:
             for i in range(3,len(sys.argv)):
                 if sys.argv[i] == "--bp":

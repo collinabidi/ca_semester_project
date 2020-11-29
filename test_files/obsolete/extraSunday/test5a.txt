@@ -11,6 +11,7 @@ Mem[4]=4, Mem[8]=8
 
 Add R1, R1, R3
 Add R4, R5, R6
+Add.d F1, F2, F3
 Add.d F4, F5, F6
 Bne R1, R7, -3
 Mult.d F7, F8, F9
