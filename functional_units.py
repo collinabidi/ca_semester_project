@@ -140,7 +140,6 @@ class FPMultiplier:
         """ Function to insert an instruction into the reservation station
         """
         # Check if there's enough room in the reservation stations
-        print("Issue inside of FPMULT")
         if self.num_filled_stations >= self.size:
             return Warning("Reservation Station of FPMultiplier {} is full".format(self.fu_number))
         else:
@@ -417,7 +416,7 @@ class IntegerAdder:
         for tag, instruction in self.reservation_stations.items():
             if instruction["vj"] != None and instruction["vk"] != None and tag not in self.ready_queue and tag != self.last_issued:
                 self.ready_queue.append(tag)
-                print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+                #print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
                 tracker.update("execute", {"pc":instruction["instruction"].pc})
             elif tag == self.last_issued:
                 self.last_issued = None
@@ -451,7 +450,7 @@ class IntegerAdder:
 
 
     def deliver(self):
-        print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
+        #print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
         return self.result_buffer.pop(0)
 
     def save_state(self):
@@ -473,10 +472,10 @@ class IntegerAdder:
         """
         for tag, station in self.reservation_stations.items():
             if station["qj"] == bus_data["dest"]:
-                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["value"]))
+                #print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["value"]))
                 station["vj"] = bus_data["value"]
             if station["qk"] == bus_data["dest"]:
-                print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["value"]))
+                #print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["value"]))
                 station["vk"] = bus_data["value"]
 
     def __str__(self):
@@ -532,7 +531,7 @@ class ROB:
         # Special case: Sd needs to check the LSQ to set it's finished status
         if self.rob[self.front]["op"] == "Sd":
             if self.LSQ.check_mem_commit(self.rob[self.front]["tag"]) == True:
-                print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
+                #print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
                 self.rob[self.front]["finished"] = True
 
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
@@ -540,12 +539,12 @@ class ROB:
             entry = self.rob[self.front]
             if self.last_wb != entry["tag"]:
                 if entry["op"] == "Ld" or entry["op"] == "Sd":
-                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
+                    #print("!MEMCOMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc}) #@Collin - changed this from "memory" to "commit"
                     self.mem_commit(entry)
                     return self.dequeue()
                 else:
-                    print("!COMMIT: {}".format(entry["instruction"]))
+                    #print("!COMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc})
                     self.commit(entry)
                     return self.dequeue()
@@ -598,17 +597,17 @@ class ROB:
             if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
-                print("!WB {}".format(entry))
+                #print("!WB {}".format(entry))
                 tracker.update("wrtback", {"pc":entry["pc"]})
                 self.last_wb = entry["tag"]
 
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
             if "F" in entry["dest"]:
-                print("!COMMIT {}".format(entry))
+                #print("!COMMIT {}".format(entry))
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
-                print("!COMMIT {}".format(entry))
+                #print("!COMMIT {}".format(entry))
                 self.int_arf[entry["dest"]] = entry["value"]
             self.RAT.commit_update(entry["tag"])
 
@@ -695,14 +694,15 @@ class BTB:
         return output_string
 
     def fetch_pc(self, f_stall=False):
-        if self.branch_entry != -1:
+        if self.branch_entry != -1 or f_stall == True:
+            print("--------------->Stalling or waiting on branch: returning new_pc = None")
+            self.f_stall = f_stall
             return None
-        if f_stall == False:
+
+        elif self.branch_entry == -1 and f_stall == False:
+            print("-------------->Not stalling: returning new_pc = {}".format(self.new_pc))
             self.f_stall = f_stall
             return self.new_pc
-        elif f_stall == True:
-            self.f_stall = f_stall
-            return None
 
     def issue(self, instruction, current_pc):
         """ Function to issue instruction to the BTB. Will return value of predicted PC
@@ -744,6 +744,7 @@ class BTB:
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
         if self.correct is None:
+            print("Not waiting on BTB and stalling = {}".format(self.f_stall))
             if self.branch_entry == -1 and not self.f_stall:
                 print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
@@ -760,10 +761,10 @@ class BTB:
             self.branch_entry = -1
             if self.actual_result == True:
                 print("****** Actually Taken")
-                self.new_pc = self.predicted_pc - 4
+                self.new_pc = self.predicted_pc
             else:
                 print("****** Actually Not Taken")
-                self.new_pc = self.new_pc + 4
+                self.new_pc = self.branch_pc + 4
             self.actual_result = None
             # Call rewind on all relevant units
             """
@@ -782,16 +783,15 @@ class BTB:
             tracker.update("wrtback", {"pc":self.current_instruction.pc})
             self.current_instruction = None
             self.correct = None
-            self.rt = None
-            self.rs = None
             self.branch_entry = -1
             if self.actual_result == True:
                 print("@@@@@@ BTB Actually Taken")
-                self.new_pc = self.predicted_pc - 4
+                self.new_pc = self.predicted_pc
             else:
                 print("@@@@@@ BTB Actually Not Taken")
-                self.new_pc = self.new_pc + 4
+                self.new_pc = self.branch_pc + 4
             self.actual_result = None
+
         print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
 
 
