@@ -731,19 +731,18 @@ class BTB:
                 #print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = False
-                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                self.predicted_pc = self.new_pc + 4
 
     def tick(self, tracker=None):
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
         if self.correct is None:
             if self.branch_entry == -1 and not self.f_stall:
-                #print("###### Regular execution")
+                print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
             elif self.branch_entry != -1 or self.f_stall:
-                #print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
+                print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc
-
         elif self.correct is False:
             tracker.update("wrtback", {"pc":self.current_instruction.pc})
             self.current_instruction = None
@@ -751,11 +750,12 @@ class BTB:
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
             if self.actual_result == True:
-                #print("****** Actually Taken")
-                self.new_pc = self.predicted_pc
+                print("****** Actually Taken")
+                self.new_pc = self.branch_pc + self.predicted_offset * 4
+                print("****** New PC should be {}".format(self.new_pc))
             else:
-                #print("****** Actually Not Taken")
-                self.new_pc = self.branch_pc + 4
+                print("****** Actually Not Taken")
+                self.new_pc = self.branch_pc
             self.actual_result = None
             # Call rewind on all relevant units
             """
@@ -776,12 +776,12 @@ class BTB:
             self.branch_entry = -1
             # Branch actually taken
             if self.actual_result == True:
-                self.new_pc = self.predicted_pc
+                self.new_pc = self.branch_pc + self.predicted_offset * 4
             else: # Branch not actually taken
-                self.new_pc = self.branch_pc + 4
+                self.new_pc = self.branch_pc
             self.actual_result = None
 
-        #print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
+        print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
 
 
     def read_cdb(self, data_bus, tracker=None):
