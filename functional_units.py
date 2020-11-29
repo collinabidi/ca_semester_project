@@ -756,6 +756,7 @@ class BTB:
             else:
                 print("****** Actually Not Taken")
                 self.new_pc = self.branch_pc
+                print("****** New PC should be {}".format(self.new_pc))
             self.actual_result = None
             # Call rewind on all relevant units
             """
@@ -776,9 +777,13 @@ class BTB:
             self.branch_entry = -1
             # Branch actually taken
             if self.actual_result == True:
+                print("****** Actually Taken")
                 self.new_pc = self.branch_pc + self.predicted_offset * 4
+                print("****** New PC should be {}".format(self.new_pc))
             else: # Branch not actually taken
+                print("****** Actually Not Taken")
                 self.new_pc = self.branch_pc
+                print("****** New PC should be {}".format(self.new_pc))
             self.actual_result = None
 
         print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
