@@ -531,26 +531,20 @@ class ROB:
         # Special case: Sd needs to check the LSQ to set it's finished status
         if self.rob[self.front]["op"] == "Sd":
             if self.LSQ.check_mem_commit(self.rob[self.front]["tag"]) == True:
-                print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
                 self.rob[self.front]["finished"] = True
 
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
-            print("Last WB: {}".format(self.last_wb))
-            print("Entry Tag: {}".format(entry["tag"]))
             if self.last_wb != entry["tag"]:
                 if entry["op"] == "Ld" or entry["op"] == "Sd":
-                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc}) #@Collin - changed this from "memory" to "commit"
                     self.mem_commit(entry)
                     return self.dequeue()
                 else:
-                    print("!COMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc})
                     self.commit(entry)
                     return self.dequeue()
-        print("--------> Purge last_wb = None")
         self.last_wb = None
 
     def enqueue(self, entry):
@@ -599,18 +593,14 @@ class ROB:
             if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
-                print("!WB {}".format(entry))
                 tracker.update("wrtback", {"pc":entry["pc"]})
-                print("-----> LAST_WB = {}".format(entry["tag"]))
                 self.last_wb = entry["tag"]
 
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
             if "F" in entry["dest"]:
-                print("!COMMIT {}".format(entry))
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
-                print("!COMMIT {}".format(entry))
                 self.int_arf[entry["dest"]] = entry["value"]
             self.RAT.commit_update(entry["tag"])
 
@@ -747,7 +737,6 @@ class BTB:
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
         """
         if self.correct is None:
-            print("Not waiting on BTB and stalling = {}".format(self.f_stall))
             if self.branch_entry == -1 and not self.f_stall:
                 #print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
@@ -756,7 +745,6 @@ class BTB:
                 self.new_pc = self.new_pc
 
         elif self.correct is False:
-            print("***MISPREDICTION***")
             tracker.update("wrtback", {"pc":self.current_instruction.pc})
             self.current_instruction = None
             self.correct = None
@@ -782,16 +770,14 @@ class BTB:
             """
         elif self.correct is True:
             # Reset all values if prediction is good
-            print("***Correct prediction***")
             tracker.update("wrtback", {"pc":self.current_instruction.pc})
             self.current_instruction = None
             self.correct = None
             self.branch_entry = -1
+            # Branch actually taken
             if self.actual_result == True:
-                print("@@@@@@ BTB Actually Taken")
                 self.new_pc = self.predicted_pc
-            else:
-                print("@@@@@@ BTB Actually Not Taken")
+            else: # Branch not actually taken
                 self.new_pc = self.branch_pc + 4
             self.actual_result = None
 

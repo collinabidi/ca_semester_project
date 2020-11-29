@@ -93,19 +93,22 @@ class Processor:
             # FETCH/DECODE/ISSUE
             self.reg_alias_tbl.tick(self.tracker)
             self.brnch_trnsl_buf.tick(self.tracker)
+
             # EXECUTE
             for unit in self.func_units:
                 unit.tick(self.tracker)
                 #print(unit)
-                #if verbose:
-            #print(self.func_units[3])
+            """
             for _, adder in self.reg_alias_tbl.func_units["INT"].items():
                 print(adder)
             if self.verbose:
                 print(self.func_units[0])
+            """
+
             # WRITE BACK
             self.CDB.tick(self.tracker)
             print(self.CDB)
+
             # COMMIT
             committed_instruction = self.reorder_buf.tick(self.tracker)
             if self.verbose:

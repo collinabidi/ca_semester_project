@@ -77,7 +77,6 @@ class RegisterAliasTable:
         target_fu = self.routing_tbl[transformation.op]
 
         # Pick the next (appropriate) non-full functional unit
-        print("NUM INT ADDERS: {}".format(self.num_int_adders))
         if target_fu == "INT":
             starting_unit = self.int_adder_counter
             exit_flag = False
@@ -133,7 +132,7 @@ class RegisterAliasTable:
                 self.func_units["BTB"].issue(transformation, transformation.pc)
 
             # Update timing table
-            print("!ISSUE: {}".format(transformation))
+            #print("!ISSUE: {}".format(transformation))
             #tracker.update("issue", transformation)
 
 
@@ -161,7 +160,7 @@ class RegisterAliasTable:
 
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
-        print("[RAT] Translate >>> Input {}".format(instr_raw))
+        #print("[RAT] Translate >>> Input {}".format(instr_raw))
 
         #  then remaps registers from current table
         if instr_raw.type not in ["r", "i"]:
@@ -184,7 +183,7 @@ class RegisterAliasTable:
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
-                print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)))
+                #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
             elif instr_raw.op == "Sd":
                 self.sd_rob_ptr = self.rob.enqueue(rob_dict)
@@ -193,22 +192,22 @@ class RegisterAliasTable:
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = str(instr_raw.addr_imm)+"("+rs+")"
-                print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, addr_imm], pc=instr_raw.pc)))
+                #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, addr_imm], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rt, addr_imm], pc=instr_raw.pc)
             elif instr_raw.op == "Addi":
                 # Only used for Addi & Ld
-                print(self.rob)
+                #print(self.rob)
                 rs = self.rat_map[instr_raw.rs]  #assign source register
                 rt = self.rob.enqueue(rob_dict)  #retrieve dest register
                 if rt is None:
                     return None
                 self.rat_map[instr_raw.rt] = rt # remap source register
                 addr_imm = instr_raw.addr_imm
-                print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)))
+                #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rt, rs, addr_imm], pc=instr_raw.pc)
             else:
                 # Only used for Ld bc Instruction args are different
-                print(self.rob)
+                #print(self.rob)
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rob.enqueue(rob_dict)
                 if rt is None:
@@ -216,7 +215,7 @@ class RegisterAliasTable:
                 self.rat_map[instr_raw.rt] = rt
                 addr_imm = instr_raw.addr_imm
                 imm_rs = str(addr_imm)+"("+rs+")"
-                print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, imm_rs], pc=instr_raw.pc)))
+                #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rt, imm_rs], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rt, imm_rs], pc=instr_raw.pc)
 
         elif instr_raw.type == "r":
@@ -240,7 +239,7 @@ class RegisterAliasTable:
             else:
                 rs = instr_raw.rs
             """
-            print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rd, rs, rt], pc=instr_raw.pc)))
+            #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rd, rs, rt], pc=instr_raw.pc)))
             return Instruction([instr_raw.op, rd, rs, rt], pc=instr_raw.pc)
 
 
