@@ -531,25 +531,27 @@ class ROB:
         # Special case: Sd needs to check the LSQ to set it's finished status
         if self.rob[self.front]["op"] == "Sd":
             if self.LSQ.check_mem_commit(self.rob[self.front]["tag"]) == True:
-                #print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
+                print("------> Sd at front of ROB is finished in LSQ. Mark finished in ROB")
                 self.rob[self.front]["finished"] = True
 
         # Check to see if the entry at the head is ready to commit. If so, commit/mem_commit and dequeue it
         if self.rob[self.front]["finished"] == True:
             entry = self.rob[self.front]
+            print("Last WB: {}".format(self.last_wb))
+            print("Entry Tag: {}".format(entry["tag"]))
             if self.last_wb != entry["tag"]:
                 if entry["op"] == "Ld" or entry["op"] == "Sd":
-                    #print("!MEMCOMMIT: {}".format(entry["instruction"]))
+                    print("!MEMCOMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc}) #@Collin - changed this from "memory" to "commit"
                     self.mem_commit(entry)
                     return self.dequeue()
                 else:
-                    #print("!COMMIT: {}".format(entry["instruction"]))
+                    print("!COMMIT: {}".format(entry["instruction"]))
                     tracker.update("commit",{"pc":entry["instruction"].pc})
                     self.commit(entry)
                     return self.dequeue()
-            else:
-                self.last_wb = None
+        print("--------> Purge last_wb = None")
+        self.last_wb = None
 
     def enqueue(self, entry):
         """ Add an entry to the ROB, formatted as
@@ -597,17 +599,18 @@ class ROB:
             if entry["tag"] == bus_data["dest"]:
                 entry["value"] = bus_data["value"]
                 entry["finished"] = True
-                #print("!WB {}".format(entry))
+                print("!WB {}".format(entry))
                 tracker.update("wrtback", {"pc":entry["pc"]})
+                print("-----> LAST_WB = {}".format(entry["tag"]))
                 self.last_wb = entry["tag"]
 
     def commit(self, entry):
         if entry["finished"] and entry["op"] not in ["Sd", "Ld"]:
             if "F" in entry["dest"]:
-                #print("!COMMIT {}".format(entry))
+                print("!COMMIT {}".format(entry))
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
-                #print("!COMMIT {}".format(entry))
+                print("!COMMIT {}".format(entry))
                 self.int_arf[entry["dest"]] = entry["value"]
             self.RAT.commit_update(entry["tag"])
 
@@ -695,12 +698,12 @@ class BTB:
 
     def fetch_pc(self, f_stall=False):
         if self.branch_entry != -1 or f_stall == True:
-            print("--------------->Stalling or waiting on branch: returning new_pc = None")
+            #print("--------------->Stalling or waiting on branch: returning new_pc = None")
             self.f_stall = f_stall
             return None
 
         elif self.branch_entry == -1 and f_stall == False:
-            print("-------------->Not stalling: returning new_pc = {}".format(self.new_pc))
+            #print("-------------->Not stalling: returning new_pc = {}".format(self.new_pc))
             self.f_stall = f_stall
             return self.new_pc
 
@@ -729,16 +732,16 @@ class BTB:
             # Make prediction based on what's in the BTB entry PC
             if self.entries[current_pc % 8] == True:
                 # Predict taken
-                print("PREDICT TAKEN: Saved branch pc as {}".format(self.new_pc))
+                #print("PREDICT TAKEN: Saved branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = True
-                self.predicted_pc = self.new_pc + self.predicted_offset * 4
+                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
             else:
                 # Predict not taken
-                print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
+                #print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = False
-                self.predicted_pc = self.new_pc + self.predicted_offset * 4
+                self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
 
     def tick(self, tracker=None):
         """ Will check for misprediction, correct prediction, or no prediction and issue PC accordingly
@@ -746,10 +749,10 @@ class BTB:
         if self.correct is None:
             print("Not waiting on BTB and stalling = {}".format(self.f_stall))
             if self.branch_entry == -1 and not self.f_stall:
-                print("###### Regular execution")
+                #print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
             elif self.branch_entry != -1 or self.f_stall:
-                print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
+                #print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc
 
         elif self.correct is False:
@@ -760,10 +763,10 @@ class BTB:
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
             if self.actual_result == True:
-                print("****** Actually Taken")
+                #print("****** Actually Taken")
                 self.new_pc = self.predicted_pc
             else:
-                print("****** Actually Not Taken")
+                #print("****** Actually Not Taken")
                 self.new_pc = self.branch_pc + 4
             self.actual_result = None
             # Call rewind on all relevant units
@@ -792,7 +795,7 @@ class BTB:
                 self.new_pc = self.branch_pc + 4
             self.actual_result = None
 
-        print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
+        #print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
 
 
     def read_cdb(self, data_bus, tracker=None):
