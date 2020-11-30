@@ -8,6 +8,7 @@ class RegisterAliasTable:
         self.routing_tbl = {} # Map of instructions to func_units
         self.sd_rob_ptr = None # register to hold ROB assignment for Sd instr's
         self.actv_instruction = None # instruction being worked on or stalled
+        self.orig_instruction = None
         self.int_adder_counter = 0  # Counter to distribute int_adder instructions equally
         self.fp_adder_counter = 0   # Counter to distribute fp_adder instructions equally
         self.fp_mult_counter = 0    # Counter to distribute fp_mult instructions equally
@@ -57,8 +58,9 @@ class RegisterAliasTable:
                 work_instruction = Instruction("NOP")  # Issue Nop
             else:
                 work_instruction = self.instr_queue.fetch(next_pc)
-                tracker.update("issue", work_instruction)
+                #tracker.update("issue", work_instruction)
                 self.actv_instruction = work_instruction
+                self.orig_instruction = work_instruction
         else:
             self.func_units["BTB"].fetch_pc(f_stall=True)
 
@@ -124,7 +126,10 @@ class RegisterAliasTable:
 
         # if pushed, clear the held instruction
         if type(push_result) is not Warning and hazard_flag == False:
+            if self.orig_instruction is not None:
+                tracker.update("issue", self.orig_instruction)
             self.actv_instruction = None
+            self.orig_instruction = None
             self.sd_rob_ptr = None
             if transformation.op in ["Beq", "Bne"]:
                 # if the instruction was a branch, it also needs pushed to btb
@@ -160,7 +165,7 @@ class RegisterAliasTable:
 
     def __translate__(self, instr_raw):
         # Requests a destination register from ROB
-        #print("[RAT] Translate >>> Input {}".format(instr_raw))
+        print("[RAT] Translate >>> Input {}".format(instr_raw))
 
         #  then remaps registers from current table
         if instr_raw.type not in ["r", "i"]:
@@ -183,7 +188,7 @@ class RegisterAliasTable:
                 rs = self.rat_map[instr_raw.rs]
                 rt = self.rat_map[instr_raw.rt]
                 addr_imm = instr_raw.addr_imm
-                #print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)))
+                print("[RAT] Translate >>> Output {}".format(Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)))
                 return Instruction([instr_raw.op, rs, rt, addr_imm], pc=instr_raw.pc)
             elif instr_raw.op == "Sd":
                 self.sd_rob_ptr = self.rob.enqueue(rob_dict)

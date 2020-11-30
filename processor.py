@@ -83,7 +83,9 @@ class Processor:
     def run_code(self, bp=False):
         # run the heartbeat loop
         if self.verbose:
-            print(self.instr_buf)
+            for i in self.instr_buf.instruction_list:
+                print(i)
+            #print(self.instr_buf)
 
         while(self.__continue__(self.pipe_cd)):
             # TIME TABLE PREP
@@ -97,7 +99,7 @@ class Processor:
             # EXECUTE
             for unit in self.func_units:
                 unit.tick(self.tracker)
-                #print(unit)
+                print(unit)
             """
             for _, adder in self.reg_alias_tbl.func_units["INT"].items():
                 print(adder)
