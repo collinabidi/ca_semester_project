@@ -349,8 +349,8 @@ class IntegerAdder:
         """
         self.reservation_stations = {}
         self.fu_number = fu_number
-        self.cycles_in_ex = cycles_in_ex
-        self.countdown = cycles_in_ex
+        self.cycles_in_ex = cycles_in_ex-1
+        self.countdown = cycles_in_ex-1
         self.executing = False
         self.current_tag = None
         self.last_issued = None
@@ -416,13 +416,12 @@ class IntegerAdder:
         for tag, instruction in self.reservation_stations.items():
             if instruction["vj"] != None and instruction["vk"] != None and tag not in self.ready_queue and tag != self.last_issued:
                 self.ready_queue.append(tag)
-                #print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
-                tracker.update("execute", {"pc":instruction["instruction"].pc})
             elif tag == self.last_issued:
                 self.last_issued = None
 
         if self.countdown != 0 and self.executing == True:
             self.countdown -= 1
+            print("------------------> COUNTDOWN = {}".format(self.countdown))
         elif self.countdown == 0 and self.executing == True:
             # Calculate answer
             if self.reservation_stations[self.current_tag]["op"] == "Add" or self.reservation_stations[self.current_tag]["op"] == "Addi":
@@ -437,18 +436,22 @@ class IntegerAdder:
             self.result_buffer.append({"dest":self.reservation_stations[self.current_tag]["dest"],"value":answer,"op":self.reservation_stations[self.current_tag]["op"]})
             
             # Free reservation station and reset tags/flags
-            self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "dest":None}
+            self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "dest":None, "instruction":None}
             self.ready_queue.remove(self.current_tag)
             self.current_tag = None
             self.num_filled_stations -= 1
             self.executing = False
             self.countdown = self.cycles_in_ex
+            print("-----------------> COUNTDOWN FINISHED!!!!!!")
 
         # Begin executing next instruction if idle
         if self.executing == False and len(self.ready_queue) != 0:
             self.current_tag = self.ready_queue[0]
             self.executing = True
             self.countdown = self.cycles_in_ex
+            instruction = self.reservation_stations[self.current_tag]
+            print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+            tracker.update("execute", {"pc":instruction["instruction"].pc})
 
 
     def deliver(self):
