@@ -729,8 +729,10 @@ class BTB:
                 self.branch_pc = self.new_pc
                 self.prediction = True
                 self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
+                print("@@@@@@@@@@@@@@@@@@@@@@@ BTB PREDICT TAKEN TO {}".format(self.predicted_pc))
             else:
                 # Predict not taken
+                print("@@@@@@@@@@@@@@@@@@@@@@@@ BTB PREDICT NOT TAKEN TO {}".format(self.new_pc + 4))
                 self.branch_pc = self.new_pc
                 self.prediction = False
                 self.predicted_pc = self.new_pc + 4
