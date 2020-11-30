@@ -601,6 +601,10 @@ class ROB:
                 self.fp_arf[entry["dest"]] = entry["value"]
             elif "R" in entry["dest"]:
                 self.int_arf[entry["dest"]] = entry["value"]
+                if entry["dest"] == "R0":
+                    print("Attempting to write to R0... booooo")
+                    self.int_arf["R0"] = 0
+                    entry["dest"] = 0
             self.RAT.commit_update(entry["tag"])
 
     def mem_commit(self, entry):
@@ -610,6 +614,10 @@ class ROB:
                     self.fp_arf[entry["dest"]] = entry["value"]
                 elif "R" in entry["dest"]:
                     self.int_arf[entry["dest"]] = entry["value"]
+                    if entry["dest"] == "R0":
+                        print("Attempting to write to R0... booooo")
+                        self.int_arf["R0"] = 0
+                        entry["dest"] = 0
                 self.RAT.commit_update(entry["tag"])
             self.LSQ.mem_commit(entry["tag"])
 
