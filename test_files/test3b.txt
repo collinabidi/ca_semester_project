@@ -2,13 +2,14 @@
 Integer adder	3	2	0	1
 FP adder	3	3	0	1
 FP multiplier	2	10	0	1
-Load/store unit	3	1	2	1
+Load/store unit	3	2	1	1
 
 ROB entries = 128
 CDB buffer entries = 1
 R2=10, R3=2
 Mem[14]= 3, Mem[18]= 4.32
 
+Add R3, R2, R3
 Sd R3, 0(R2)
 Ld R1, 0(R2)
 Ld R3, 8(R1)
