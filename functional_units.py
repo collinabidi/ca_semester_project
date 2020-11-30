@@ -421,7 +421,6 @@ class IntegerAdder:
 
         if self.countdown != 0 and self.executing == True:
             self.countdown -= 1
-            print("------------------> COUNTDOWN = {}".format(self.countdown))
         elif self.countdown == 0 and self.executing == True:
             # Calculate answer
             if self.reservation_stations[self.current_tag]["op"] == "Add" or self.reservation_stations[self.current_tag]["op"] == "Addi":
@@ -442,7 +441,6 @@ class IntegerAdder:
             self.num_filled_stations -= 1
             self.executing = False
             self.countdown = self.cycles_in_ex
-            print("-----------------> COUNTDOWN FINISHED!!!!!!")
 
         # Begin executing next instruction if idle
         if self.executing == False and len(self.ready_queue) != 0:
@@ -450,7 +448,7 @@ class IntegerAdder:
             self.executing = True
             self.countdown = self.cycles_in_ex
             instruction = self.reservation_stations[self.current_tag]
-            print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
+            #print("!EXECUTE BEGAN: {}".format(instruction["instruction"]))
             tracker.update("execute", {"pc":instruction["instruction"].pc})
 
 
@@ -746,7 +744,7 @@ class BTB:
             elif self.branch_entry != -1 or self.f_stall:
                 self.new_pc = self.new_pc
         elif self.correct is False:
-            tracker.update("wrtback", {"pc":self.current_instruction.pc})
+            tracker.update("commit", {"pc":self.current_instruction.pc})
             self.current_instruction = None
             self.correct = None
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
@@ -769,7 +767,7 @@ class BTB:
             """
         elif self.correct is True:
             # Reset all values if prediction is good
-            tracker.update("wrtback", {"pc":self.current_instruction.pc})
+            tracker.update("commit", {"pc":self.current_instruction.pc})
             self.current_instruction = None
             self.correct = None
             self.branch_entry = -1
@@ -805,3 +803,5 @@ class BTB:
                 self.correct = True
             elif self.actual_result != self.prediction:
                 self.correct = False
+            tracker.update("wrtback", {"pc":self.current_instruction.pc})
+
