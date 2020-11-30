@@ -432,8 +432,10 @@ class IntegerAdder:
                 answer = int(self.reservation_stations[self.current_tag]["vk"]) - int(self.reservation_stations[self.current_tag]["vj"])
 
             self.reservation_stations[self.current_tag]["value"] = answer
+            
             # Put answer on result_buffer
             self.result_buffer.append({"dest":self.reservation_stations[self.current_tag]["dest"],"value":answer,"op":self.reservation_stations[self.current_tag]["op"]})
+            
             # Free reservation station and reset tags/flags
             self.reservation_stations[self.current_tag] = {"busy":False, "op":None,"vj":None, "vk":None, "qj":None, "qk":None, "value":None, "dest":None}
             self.ready_queue.remove(self.current_tag)
@@ -450,7 +452,6 @@ class IntegerAdder:
 
 
     def deliver(self):
-        #print("Delivering {} and removing from result buffer".format(self.result_buffer[0]))
         return self.result_buffer.pop(0)
 
     def save_state(self):
@@ -472,10 +473,8 @@ class IntegerAdder:
         """
         for tag, station in self.reservation_stations.items():
             if station["qj"] == bus_data["dest"]:
-                #print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qj"], bus_data["value"]))
                 station["vj"] = bus_data["value"]
             if station["qk"] == bus_data["dest"]:
-                #print("Station {} was waiting upon {} that is now updated to be {}".format(tag, station["qk"], bus_data["value"]))
                 station["vk"] = bus_data["value"]
 
     def __str__(self):
@@ -616,30 +615,22 @@ class ROB:
 
     def request(self, register_name):
         if "ROB" in register_name:
-            #print("Requesting {} from the ROB registers".format(register_name))
             matching_entry = next((entry for entry in self.rob if entry["tag"] == register_name), None)
-            #print("Entry Index for {}: {}".format(register_name, matching_entry))
             if matching_entry == None or "value" not in matching_entry.keys():
-                #print("{} has no result, returning None".format(register_name))
                 return None
             else:
-                #print("{} has value {}".format(register_name, self.rob[entry_index]["value"]))
                 return matching_entry["value"]
         elif "R" in register_name:
-            #print("Requesting {} from the INT ARF".format(register_name))
             return self.int_arf[register_name]
         elif "F" in register_name:
-            #print("Requesting {} from the FP ARF".format(register_name))
             return self.fp_arf[register_name]
 
     def register_arfs(self, int_arf, fp_arf):
         """ Initializes the FP ARF and INT ARF values based on what comes from the input file
         """
         for key, value in int_arf.items():
-            #print("Registering {} - {}".format(key, value))
             self.int_arf[key] = value
         for key, value in fp_arf.items():
-            #print("Registering {} - {}".format(key, value))
             self.fp_arf[key] = value
         
         # Register un-writeable R0
@@ -694,12 +685,10 @@ class BTB:
 
     def fetch_pc(self, f_stall=False):
         if self.branch_entry != -1 or f_stall == True:
-            #print("--------------->Stalling or waiting on branch: returning new_pc = None")
             self.f_stall = f_stall
             return None
 
         elif self.branch_entry == -1 and f_stall == False:
-            #print("-------------->Not stalling: returning new_pc = {}".format(self.new_pc))
             self.f_stall = f_stall
             return self.new_pc
 
@@ -728,13 +717,11 @@ class BTB:
             # Make prediction based on what's in the BTB entry PC
             if self.entries[current_pc % 8] == True:
                 # Predict taken
-                #print("PREDICT TAKEN: Saved branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = True
                 self.predicted_pc = self.new_pc + 4 + self.predicted_offset * 4
             else:
                 # Predict not taken
-                #print("PREDICT NOT TAKEN branch pc as {}".format(self.new_pc))
                 self.branch_pc = self.new_pc
                 self.prediction = False
                 self.predicted_pc = self.new_pc + 4
@@ -744,10 +731,8 @@ class BTB:
         """
         if self.correct is None:
             if self.branch_entry == -1 and not self.f_stall:
-                print("###### Regular execution")
                 self.new_pc = self.new_pc + 4
             elif self.branch_entry != -1 or self.f_stall:
-                print("###### Waiting on a branch to resolve OR RAT is stalling because of full reservation stations...")
                 self.new_pc = self.new_pc
         elif self.correct is False:
             tracker.update("wrtback", {"pc":self.current_instruction.pc})
@@ -756,13 +741,9 @@ class BTB:
             self.entries[self.branch_entry] = not self.entries[self.branch_entry]
             self.branch_entry = -1
             if self.actual_result == True:
-                print("****** Actually Taken")
-                self.new_pc = self.branch_pc + self.predicted_offset * 4
-                print("****** New PC should be {}".format(self.new_pc))
+                self.new_pc = self.branch_pc + self.predicted_offset * 4 + 4
             else:
-                print("****** Actually Not Taken")
-                self.new_pc = self.branch_pc
-                print("****** New PC should be {}".format(self.new_pc))
+                self.new_pc = self.branch_pc + 4
             self.actual_result = None
             # Call rewind on all relevant units
             """
@@ -783,17 +764,10 @@ class BTB:
             self.branch_entry = -1
             # Branch actually taken
             if self.actual_result == True:
-                print("****** Actually Taken")
-                self.new_pc = self.branch_pc + self.predicted_offset * 4
-                print("****** New PC should be {}".format(self.new_pc))
+                self.new_pc = self.branch_pc + self.predicted_offset * 4 + 4
             else: # Branch not actually taken
-                print("****** Actually Not Taken")
-                self.new_pc = self.branch_pc
-                print("****** New PC should be {}".format(self.new_pc))
+                self.new_pc = self.branch_pc + 4
             self.actual_result = None
-
-        print("@@@@@@@@@@@@@ BTB new_pc = {}".format(self.new_pc))
-
 
     def read_cdb(self, data_bus, tracker=None):
         """ Read data on CDB and check if unit is looking for that value. Data bus formatted as
