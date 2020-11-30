@@ -68,7 +68,7 @@ class TimingTable:
         # looks at tx's for each instruction & decides if this is correct tx in pipeline
         tx_order = None
         if op =="Sd":
-            tx_order = ["issue", "execute", "memory", "commit"]
+            tx_order = ["issue", "execute", "commit", "memory"]
         elif op == "Ld":
             tx_order = ["issue", "execute", "memory", "wrtback", "commit"]
         else:

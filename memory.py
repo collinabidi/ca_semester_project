@@ -144,7 +144,7 @@ class LoadStoreQueue:
                         self.queue_stations.pop(0)
                         self.num_stats_free += 1
                         self.__reposition_alu_ptr__(0) # its possible to do a store and load-fwd on the same cycle
-                        tracker.update("commit", queue_leader) # memory is also commit for Sd
+                        #tracker.update("commit", queue_leader) # memory is also commit for Sd
 
                     # Queue leader was simply served, we must load the next instr. to memory in same cycle
                     if len(self.queue_stations) != 0:  # empty queue check
